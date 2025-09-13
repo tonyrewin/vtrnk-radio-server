@@ -1,0 +1,8 @@
+Flask==2.0.1 
+Flask-CORS==3.0.10 
+Flask-SocketIO==5.1.1 
+gevent-websocket==0.10.1 
+apscheduler==3.10.4 
+telethon==1.36.0 
+mutagen==1.47.0
+Werkzeug==2.0.3

@@ -1,0 +1,18 @@
+
+# Ignore sensitive files only (blacklist mode)
+.env
+
+audio/
+bot/
+config/
+data/
+hls/
+images/
+liquidsoap/
+logs/
+# player/
+scripts/
+venv/
+web/
+
+
