@@ -4,7 +4,12 @@
 
 audio/
 bot/
-config/
+#config/
+# Full config with sensitive
+config/icecast/icecast.xml 
+# Full Nginx config
+config/nginx/vtrnk_radio.conf  
+config/systemd
 data/
 hls/
 images/
