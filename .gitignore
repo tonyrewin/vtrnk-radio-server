@@ -18,6 +18,7 @@ logs/
 # player/
 scripts/
 venv/
-web/
-
-
+# web/
+web/schedule.html
+web/tracks.html
+web/stream.html

@@ -1,0 +1,510 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>VTRNK Internet Radio</title>
+    <link rel="icon" href="/images/icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta property="og:title" content="VTRNK Internet Radio">
+    <meta property="og:description" content="Burn Babylon, free rave, jungle warriors radio show, вестник столичного андеграунда">
+    <meta property="og:image" content="/images/og-poster.jpg">
+    <meta property="og:url" content="https://vtrnk.online/radio.html">
+    <meta property="og:type" content="website">
+    <!-- Подключаем socket.io клиент -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Подключаем ColorThief для анализа цвета -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.4.0/color-thief.umd.js"></script>
+    <style>
+        body {
+            background-color: black;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.5s;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            width: 400px;
+            margin: 0 auto;
+            overflow-x: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 5px;
+        }
+        .equalizer {
+            height: 40px;
+            width: 200px;
+            margin-bottom: 15px;
+        }
+        .equalizer canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .track-info {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        #now-playing {
+            font-size: 16px;
+            color: #ccc;
+        }
+        #track-artist {
+            font-size: 18px;
+            margin: 5px 0 0 0;
+            color: white;
+        }
+        #track-title {
+            font-size: 16px;
+            margin: 2px 0 0 0;
+            color: #ddd;
+        }
+        .poster-container {
+            width: 400px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background-color: #1a1a1a;
+        }
+        .poster {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .play-stop-btn {
+            width: 80px;
+            height: 40px;
+            background: #333;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .play-stop-btn:hover {
+            background: #555;
+        }
+        .play-stop-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .play-stop-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        .footer {
+            text-align: center;
+            padding: 13px;
+            background-color: #1a1a1a;
+            width: 100%;
+        }
+        .footer a {
+            color: #00aced;
+            text-decoration: none;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        /* Гамбургер-меню */
+        .hamburger-menu {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: none;
+        }
+        .hamburger-icon {
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            background: none;
+            border: none;
+            padding: 5px;
+        }
+        .hamburger-icon span {
+            width: 100%;
+            height: 3px;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        .hamburger-icon.open span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger-icon.open span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-icon.open span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+        .menu-content {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            background-color: #1a1a1a;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-direction: column;
+            padding: 10px;
+            z-index: 999;
+        }
+        .menu-content a {
+            color: #00aced;
+            text-decoration: none;
+            padding: 10px;
+            font-size: 16px;
+            text-align: right;
+        }
+        .menu-content a:hover {
+            background-color: #333;
+            border-radius: 3px;
+        }
+        /* Полупрозрачный слой для фона */
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Увеличена прозрачность на 10% */
+            z-index: 0;
+            display: none;
+        }
+        @media (max-width: 600px) {
+            body {
+                background-color: #1a1a1a; /* Fallback для мобильных */
+            }
+            .background-overlay {
+                display: block;
+            }
+            .container {
+                width: 100%;
+                max-width: 320px;
+                overflow-x: hidden;
+            }
+            .logo {
+                margin-bottom: 3px;
+            }
+            .equalizer {
+                width: 100%;
+                max-width: 200px;
+            }
+            .track-info {
+                margin-bottom: 10px;
+            }
+            #track-artist { font-size: 16px; }
+            #track-title { font-size: 14px; }
+            #now-playing { font-size: 14px; }
+            .poster-container {
+                width: 320px;
+                height: 320px;
+            }
+            .play-stop-btn {
+                width: 70px;
+                height: 35px;
+            }
+            .play-stop-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+            .footer {
+                display: none; /* Скрываем футер только на мобильных */
+            }
+            .hamburger-menu {
+                display: block;
+            }
+            .menu-content.open {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-overlay"></div>
+    <div class="hamburger-menu">
+        <button class="hamburger-icon" id="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="menu-content" id="menu-content">
+            <a href="https://t.me/vtornikshow" target="_blank">Telegram</a>
+            <a href="https://t.me/beastybeats23" class="social-link" target="_blank" rel="noopener noreferrer">Чат</a>
+            <a href="/stream.html">Видеострим</a>
+        </div>
+    </div>
+    <div class="container">
+        <img src="/images/logovtrnk.png" alt="Логотип" class="logo">
+        <div class="equalizer">
+            <canvas id="equalizer"></canvas>
+        </div>
+        <div class="track-info">
+            <p id="now-playing">Сейчас в эфире</p>
+            <p id="track-artist">Ожидание исполнителя...</p>
+            <p id="track-title">Ожидание трека...</p>
+        </div>
+        <div class="poster-container">
+            <img id="track-poster" src="/images/placeholder2.png" alt="Постер" class="poster">
+        </div>
+        <button class="play-stop-btn" id="play-stop">
+            <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="stop-icon" viewBox="0 0 24 24" style="display: none;"><path d="M6 6h12v12H6z"/></svg>
+        </button>
+        <audio id="player" style="display: none;" playsinline preload="auto"></audio>
+    </div>
+    <footer class="footer">
+        <a href="https://t.me/vtornikshow" target="_blank">Telegram</a>
+        <a href="https://t.me/beastybeats23" class="social-link" target="_blank" rel="noopener noreferrer">Чат</a>
+        <a href="/stream.html">Видеострим</a>
+    </footer>
+
+    <script>
+        const player = document.getElementById('player');
+        const trackArtist = document.getElementById('track-artist');
+        const trackTitle = document.getElementById('track-title');
+        const trackPoster = document.getElementById('track-poster');
+        const playStopBtn = document.getElementById('play-stop');
+        const playIcon = document.getElementById('play-icon');
+        const stopIcon = document.getElementById('stop-icon');
+        const hamburgerIcon = document.getElementById('hamburger-icon');
+        const menuContent = document.getElementById('menu-content');
+        let isPlaying = false;
+        let isMenuOpen = false;
+
+        // Сохраняем последние данные о треке
+        let lastTrackData = {
+            artist: "VTRNK",
+            title: "Radio Show",
+            coverPath: "/images/placeholder2.png"
+        };
+
+        // Гамбургер-меню
+        hamburgerIcon.addEventListener('click', () => {
+            isMenuOpen = !isMenuOpen;
+            hamburgerIcon.classList.toggle('open');
+            menuContent.classList.toggle('open');
+        });
+
+        // Закрытие меню при клике вне его
+        document.addEventListener('click', (e) => {
+            if (!hamburgerIcon.contains(e.target) && !menuContent.contains(e.target)) {
+                isMenuOpen = false;
+                hamburgerIcon.classList.remove('open');
+                menuContent.classList.remove('open');
+            }
+        });
+
+        // Animated Equalizer
+        const canvas = document.getElementById('equalizer');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 40;
+        const barCount = 14;
+        const barWidth = (canvas.width / barCount) - 2;
+        let bars = [];
+        for (let i = 0; i < barCount; i++) {
+            bars.push({
+                height: Math.random() * canvas.height,
+                speed: Math.random() * 1.3 + 0.7
+            });
+        }
+        function drawEqualizer() {
+            requestAnimationFrame(drawEqualizer);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let x = 0;
+            for (let i = 0; i < barCount; i++) {
+                let bar = bars[i];
+                if (player.paused) {
+                    bar.height = 5;
+                } else {
+                    bar.height += bar.speed;
+                    if (bar.height > canvas.height || bar.height < 0) {
+                        bar.speed = -bar.speed;
+                    }
+                }
+                ctx.fillStyle = '#d3d3d3';
+                ctx.fillRect(x, canvas.height - bar.height, barWidth, bar.height);
+                x += barWidth + 2;
+            }
+        }
+        drawEqualizer();
+
+        player.addEventListener('error', (e) => console.error("Ошибка воспроизведения:", e));
+        player.addEventListener('play', () => {
+            console.log("Воспроизведение начато");
+            playIcon.style.display = 'none';
+            stopIcon.style.display = 'block';
+            isPlaying = true;
+        });
+        player.addEventListener('pause', () => {
+            console.log("Воспроизведение приостановлено");
+            playIcon.style.display = 'block';
+            stopIcon.style.display = 'none';
+            isPlaying = false;
+        });
+
+        function togglePlay() {
+            if (!player.src) {
+                player.src = "/radio_stream";
+                player.load();
+            }
+            if (isPlaying) {
+                player.pause();
+            } else {
+                player.play().catch(err => console.error("Ошибка воспроизведения:", err));
+            }
+        }
+
+        playStopBtn.addEventListener('click', togglePlay);
+
+        // Функция для извлечения основного цвета из изображения
+        function updateBackgroundColor(imageSrc) {
+            if (window.innerWidth > 600) {
+                document.body.style.backgroundColor = 'black';
+                document.querySelector('.background-overlay').style.display = 'none';
+                return;
+            }
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = imageSrc;
+            img.onload = () => {
+                const colorThief = new ColorThief();
+                const dominantColor = colorThief.getColor(img);
+                document.body.style.backgroundColor = `rgb(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]})`;
+                document.querySelector('.background-overlay').style.display = 'block';
+            };
+        }
+
+        // Функция для обновления UI
+        function updateTrackUI(artist, title, coverPath) {
+            trackArtist.textContent = artist || "VTRNK";
+            trackTitle.textContent = title || "Radio Show";
+            trackPoster.src = coverPath || "/images/placeholder2.png";
+
+            // Обновляем фон для мобильной версии
+            updateBackgroundColor(trackPoster.src);
+
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: title || "Radio Show",
+                    artist: artist || "VTRNK",
+                    artwork: [{ src: trackPoster.src, sizes: '192x192', type: 'image/png' }]
+                });
+            }
+        }
+
+        // Обновляем фон при изменении размера окна
+        window.addEventListener('resize', () => {
+            updateBackgroundColor(trackPoster.src);
+        });
+
+        // Загружаем начальные данные при загрузке страницы
+        fetch('/track')
+            .then(response => {
+                console.log("Initial fetch response status:", response.status);
+                if (!response.ok) throw new Error("Сервер вернул ошибку: " + response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Initial fetched track data:", data);
+                const dataDict = {};
+                data.forEach(item => {
+                    dataDict[item[0]] = item[1];
+                });
+                data = dataDict;
+                lastTrackData.artist = data.artist || "VTRNK";
+                lastTrackData.title = data.title || "Radio Show";
+
+                fetch('/get_cover_path')
+                    .then(response => response.json())
+                    .then(coverData => {
+                        console.log("Initial cover data:", coverData);
+                        lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                        updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                    })
+                    .catch(err => {
+                        console.error("Ошибка получения обложки:", err);
+                        lastTrackData.coverPath = "/images/placeholder2.png";
+                        updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                    });
+            })
+            .catch(err => {
+                console.error("Ошибка получения начального трека:", err);
+                updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+            });
+
+        // Обновляем информацию о текущем треке через WebSocket
+        console.log("Attempting to connect to WebSocket...");
+        const socket = io('https://vtrnk.online');
+
+        socket.on('connect', () => {
+            console.log("WebSocket connection opened successfully");
+            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+        });
+
+        socket.on('track_update', (data) => {
+            console.log("Received WebSocket update:", data);
+
+            if (data.message === 'WebSocket connection established') {
+                updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                return;
+            }
+
+            lastTrackData.artist = data.artist || "VTRNK";
+            lastTrackData.title = data.title || "Radio Show";
+
+            fetch('/get_cover_path')
+                .then(response => response.json())
+                .then(coverData => {
+                    console.log("Fetched cover data:", coverData);
+                    lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                })
+                .catch(err => {
+                    console.error("Ошибка получения обложки:", err);
+                    lastTrackData.coverPath = "/images/placeholder2.png";
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                });
+        });
+
+        socket.on('disconnect', () => {
+            console.log("WebSocket connection closed");
+            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+        });
+
+        socket.on('error', (error) => {
+            console.error("WebSocket connection error:", error);
+            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+        });
+
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', togglePlay);
+            navigator.mediaSession.setActionHandler('pause', togglePlay);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+/* Общие стили для всех страниц VTRNK Radio */
+body {
+    background-color: black;
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.logo {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    max-width: 100px;
+    height: auto;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-top: 20px;
+}
+
+h2 {
+    margin-bottom: 15px;
+}
+
+.category-container {
+    margin-bottom: 20px;
+}
+
+.category-header {
+    cursor: pointer;
+    background-color: #2a2a2a;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    transition: background-color 0.3s;
+}
+
+.category-header:hover {
+    background-color: #3a3a3a;
+}
+
+.list-container {
+    background-color: #1a1a1a;
+    padding: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.category-list {
+    margin-top: 0;
+}
+
+.item {
+    background-color: #333;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.item:hover {
+    background-color: #555;
+}
+
+.item-info {
+    flex-grow: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.item .track-info {
+    color: #00aced;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+
+button {
+    background-color: #808080;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    width: 150px;
+    height: 40px;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #666666;
+}
+
+.edit-btn {
+    background-color: #28A745;
+}
+
+.edit-btn:hover {
+    background-color: #218838;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    padding: 20px;
+    max-width: 500px;
+    width: 90%;
+    color: white;
+}
+
+.modal-content img {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto 20px;
+}
+
+.close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.show-details {
+    background-color: #2a2a2a;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+/* Стили для треков */
+.track-item img {
+    max-width: 50px;
+    height: auto;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.track-item .title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 90px);
+    text-align: left;
+}
+
+/* Обновлённые стили для текущего воспроизведения */
+.current-playback {
+    background-color: #2a2a2a;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    box-shadow: none !important; /* Убрана тень */
+    border: none !important; /* Убрана граница */
+}
+
+.current-playback img {
+    width: 200px !important; /* Принудительно 200x200 пикселей */
+    height: 200px !important;
+    margin-right: 15px;
+    flex-shrink: 0;
+    object-fit: contain !important;
+}
+
+.current-playback .track-info {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Стили для эквалайзера */
+.current-playback .equalizer {
+    height: 20px;
+    width: 60px;
+    margin-left: 15px;
+}
+
+.current-playback .equalizer canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* Стили для статуса online/offline */
+.current-playback .status {
+    margin-left: 10px;
+    font-size: 14px;
+}
+
+.current-playback .status.online {
+    color: #28A745;
+}
+
+.current-playback .status.offline {
+    color: #666;
+}
+
+/* Специфические стили для schedule.html */
+.container#scheduleContainer .category-list {
+    background-color: #1a1a1a;
+    padding: 10px;
+    border-radius: 0 0 5px 5px;
+    margin-top: -5px;
+    display: none;
+}
+
+.container#scheduleContainer .track-item {
+    background-color: #2a2a2a;
+    padding: 5px 0;
+    display: flex;
+    align-items: center;
+}
+
+.container#scheduleContainer .track-item img {
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+}
+
+.container#scheduleContainer .track-item .title {
+    flex-grow: 1;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.container#scheduleContainer .track-item button {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.container#scheduleContainer .track-item button:hover {
+    background-color: #0056b3;
+}
+
+/* Устаревшие стили загрузки, можно удалить или переопределить */
+.upload-container {
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.upload-header {
+    background-color: #f4f4f4;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.upload-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.upload-header span {
+    float: right;
+    transition: transform 0.3s;
+}
+
+.upload-content {
+    padding: 10px;
+    display: none;
+}
+
+#uploadForm {
+    margin-bottom: 10px;
+}
+
+#uploadMessage {
+    color: #333;
+    margin-top: 5px;
+}
+.container#scheduleContainer .track-item button.delete-btn {
+    background-color: #dc3545 !important;
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    border: none !important;
+}
+.container#scheduleContainer .track-item button.delete-btn:hover {
+    background-color: #c82333 !important;
+}
+.container#scheduleContainer .track-item button.delete-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    fill: #000 !important;
+}
+.container#scheduleContainer .track-item button.delete-btn {
+    background-color: #dc3545 !important;
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+.container#scheduleContainer .track-item button.delete-btn:hover {
+    background-color: #c82333 !important;
+}
+.container#scheduleContainer .track-item button.delete-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    fill: #000 !important;
+    display: block !important;
+}
