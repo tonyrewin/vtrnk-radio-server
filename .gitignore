@@ -13,7 +13,9 @@ config/systemd
 data/
 hls/
 images/
-liquidsoap/
+# liquidsoap/
+liquidsoap/radio.liq
+
 logs/
 # player/
 scripts/
