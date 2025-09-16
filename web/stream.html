@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>VTRNK Video Stream</title>
+    <link rel="icon" href="/images/icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta property="og:title" content="VTRNK Video Stream">
+    <meta property="og:description" content="Burn Babylon, free rave, jungle warriors video show, вестник столичного андеграунда">
+    <meta property="og:image" content="/images/og-poster.jpg">
+    <meta property="og:url" content="https://vtrnk.online/stream.html">
+    <meta property="og:type" content="website">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            background-color: black;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            width: 400px;
+            margin: 0 auto;
+            overflow-x: hidden;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 5px;
+        }
+        .equalizer {
+            height: 40px;
+            width: 200px;
+            margin-bottom: 15px;
+        }
+        .equalizer canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .track-info {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        #now-playing {
+            font-size: 16px;
+            color: #ccc;
+        }
+        #track-artist {
+            font-size: 18px;
+            margin: 5px 0 0 0;
+            color: white;
+        }
+        #track-title {
+            font-size: 16px;
+            margin: 2px 0 0 0;
+            color: #ddd;
+        }
+        .poster-container {
+            width: 400px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background-color: #1a1a1a;
+            position: relative;
+        }
+        .poster {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .placeholder {
+            display: none;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .play-stop-btn {
+            width: 80px;
+            height: 40px;
+            background: #333;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .play-stop-btn:hover {
+            background: #555;
+        }
+        .play-stop-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .play-stop-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        .footer {
+            text-align: center;
+            padding: 13px;
+            background-color: #1a1a1a;
+            width: 100%;
+            display: block;
+        }
+        .footer a {
+            color: #00aced;
+            text-decoration: none;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .hamburger-menu {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: none;
+        }
+        .hamburger-icon {
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            background: none;
+            border: none;
+            padding: 5px;
+        }
+        .hamburger-icon span {
+            width: 100%;
+            height: 3px;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        .hamburger-icon.open span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger-icon.open span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-icon.open span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+        .menu-content {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            background-color: #1a1a1a;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-direction: column;
+            padding: 10px;
+            z-index: 999;
+        }
+        .menu-content a {
+            color: #00aced;
+            text-decoration: none;
+            padding: 10px;
+            font-size: 16px;
+            text-align: right;
+        }
+        .menu-content a:hover {
+            background-color: #333;
+            border-radius: 3px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+                max-width: 320px;
+                overflow-x: hidden;
+            }
+            .logo {
+                margin-bottom: 3px;
+            }
+            .equalizer {
+                width: 100%;
+                max-width: 200px;
+            }
+            .track-info {
+                margin-bottom: 10px;
+            }
+            #track-artist { font-size: 16px; }
+            #track-title { font-size: 14px; }
+            #now-playing { font-size: 14px; }
+            .poster-container {
+                width: 320px;
+                height: 320px;
+            }
+            .play-stop-btn {
+                width: 70px;
+                height: 35px;
+            }
+            .play-stop-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+            .footer {
+                display: none;
+            }
+            .hamburger-menu {
+                display: block;
+            }
+            .menu-content.open {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hamburger-menu">
+        <button class="hamburger-icon" id="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="menu-content" id="menu-content">
+            <a href="https://t.me/vtornikshow" target="_blank">Telegram</a>
+            <a href="https://t.me/beastybeats23" class="social-link" target="_blank" rel="noopener noreferrer">Чат</a>
+            <a href="/radio.html">Радиострим</a>
+        </div>
+    </div>
+    <div class="container">
+        <img src="/images/logovtrnk.png" alt="Логотип" class="logo">
+        <div class="equalizer">
+            <canvas id="equalizer"></canvas>
+        </div>
+        <div class="track-info">
+            <p id="now-playing">Сейчас в эфире</p>
+            <p id="track-artist">Ожидание исполнителя...</p>
+            <p id="track-title">Ожидание трека...</p>
+        </div>
+        <div class="poster-container">
+            <video id="video-player" class="poster" controls playsinline muted style="display: none;"></video>
+            <img id="placeholder-img" src="/images/vt-videoplaceholder.png" alt="Video Placeholder" class="placeholder">
+        </div>
+        <button class="play-stop-btn" id="play-stop">
+            <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="stop-icon" viewBox="0 0 24 24" style="display: none;"><path d="M6 6h12v12H6z"/></svg>
+        </button>
+    </div>
+    <footer class="footer">
+        <a href="https://t.me/vtornikshow" target="_blank">Telegram</a>
+        <a href="https://t.me/beastybeats23" class="social-link" target="_blank" rel="noopener noreferrer">Чат</a>
+        <a href="/radio.html">Радиострим</a>
+    </footer>
+    <script>
+        const videoPlayer = document.getElementById('video-player');
+        const placeholderImg = document.getElementById('placeholder-img');
+        const trackArtist = document.getElementById('track-artist');
+        const trackTitle = document.getElementById('track-title');
+        const playStopBtn = document.getElementById('play-stop');
+        const playIcon = document.getElementById('play-icon');
+        const stopIcon = document.getElementById('stop-icon');
+        const hamburgerIcon = document.getElementById('hamburger-icon');
+        const menuContent = document.getElementById('menu-content');
+        let isPlaying = false;
+        let isMenuOpen = false;
+        let isVideoStreamActive = false;
+        let previousStreamActive = false;
+        let hls = null;
+
+        // Гамбургер-меню
+        hamburgerIcon.addEventListener('click', () => {
+            isMenuOpen = !isMenuOpen;
+            hamburgerIcon.classList.toggle('open');
+            menuContent.classList.toggle('open');
+        });
+        document.addEventListener('click', (e) => {
+            if (!hamburgerIcon.contains(e.target) && !menuContent.contains(e.target)) {
+                isMenuOpen = false;
+                hamburgerIcon.classList.remove('open');
+                menuContent.classList.remove('open');
+            }
+        });
+
+        // Animated Equalizer
+        const canvas = document.getElementById('equalizer');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 40;
+        const barCount = 14;
+        const barWidth = (canvas.width / barCount) - 2;
+        let bars = [];
+        for (let i = 0; i < barCount; i++) {
+            bars.push({
+                height: Math.random() * canvas.height,
+                speed: Math.random() * 1.3 + 0.7
+            });
+        }
+        function drawEqualizer() {
+            requestAnimationFrame(drawEqualizer);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let x = 0;
+            for (let i = 0; i < barCount; i++) {
+                let bar = bars[i];
+                if (!isPlaying || !isVideoStreamActive) {
+                    bar.height = 5;
+                } else {
+                    bar.height += bar.speed;
+                    if (bar.height > canvas.height || bar.height < 0) {
+                        bar.speed = -bar.speed;
+                    }
+                }
+                ctx.fillStyle = '#d3d3d3';
+                ctx.fillRect(x, canvas.height - bar.height, barWidth, bar.height);
+                x += barWidth + 2;
+            }
+        }
+        drawEqualizer();
+
+        // Обработка ошибок видео
+        videoPlayer.addEventListener('error', (e) => {
+            console.error("Ошибка воспроизведения:", e);
+            if (isVideoStreamActive) {
+                console.log("HLS-поток недоступен, переключаемся на видео-заставку");
+                isVideoStreamActive = false;
+                if (isPlaying) updateVideoSource();
+            } else {
+                console.log("Ошибка воспроизведения видео-заставки, останавливаем");
+                videoPlayer.pause();
+                isPlaying = false;
+                playIcon.style.display = 'block';
+                stopIcon.style.display = 'none';
+                videoPlayer.style.display = 'none';
+                placeholderImg.style.display = 'block';
+            }
+        });
+
+        videoPlayer.addEventListener('play', () => {
+            console.log("Воспроизведение начато (видео или заставка)");
+            playIcon.style.display = 'none';
+            stopIcon.style.display = 'block';
+            isPlaying = true;
+            videoPlayer.style.display = 'block';
+            placeholderImg.style.display = 'none';
+        });
+
+        videoPlayer.addEventListener('pause', () => {
+            console.log("Воспроизведение приостановлено");
+            playIcon.style.display = 'block';
+            stopIcon.style.display = 'none';
+            isPlaying = false;
+            videoPlayer.style.display = 'none';
+            placeholderImg.style.display = 'block';
+        });
+
+        // Проверка статуса видео-стрима
+        async function checkStreamStatus() {
+            try {
+                const response = await fetch('/monitor/radio_status');
+                const data = await response.json();
+                isVideoStreamActive = data.video_stream_active;
+                console.log(`Видео-стрим статус от backend: ${isVideoStreamActive}`);
+                if (isVideoStreamActive !== previousStreamActive && isPlaying) {
+                    updateVideoSource();
+                    previousStreamActive = isVideoStreamActive;
+                    updateTrackUI(null, null);
+                }
+            } catch (error) {
+                console.error('Ошибка проверки видео-стрима:', error);
+                isVideoStreamActive = false;
+                if (isVideoStreamActive !== previousStreamActive && isPlaying) {
+                    updateVideoSource();
+                    previousStreamActive = isVideoStreamActive;
+                    updateTrackUI(null, null);
+                }
+            }
+        }
+
+        // Обновление источника видео
+        function updateVideoSource() {
+            console.log(`Обновление источника: isVideoStreamActive=${isVideoStreamActive}, isPlaying=${isPlaying}`);
+            if (!isPlaying) {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                videoPlayer.src = '';
+                videoPlayer.style.display = 'none';
+                placeholderImg.style.display = 'block';
+                console.log("Воспроизведение остановлено, показываем статичную заставку");
+                return;
+            }
+
+            if (isVideoStreamActive && Hls.isSupported()) {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                hls = new Hls({
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: Infinity,
+                    liveDurationInfinity: true,
+                    lowLatencyMode: true,
+                    maxBufferLength: 60,
+                    enableWorker: false
+                });
+                hls.loadSource('/hls/video_stream123.m3u8');
+                hls.attachMedia(videoPlayer);
+                hls.on('hlsError', function (event, data) {
+                    console.log('HLS error:', data);
+                    if (data.fatal) {
+                        console.log("Фатальная ошибка HLS, переключаемся на видео-заставку");
+                        isVideoStreamActive = false;
+                        updateVideoSource();
+                    }
+                });
+                hls.on('hlsManifestParsed', function () {
+                    console.log("HLS манифест загружен, начинаем воспроизведение");
+                    videoPlayer.play().catch(err => {
+                        console.error("Ошибка воспроизведения стрима:", err);
+                        videoPlayer.pause();
+                        isPlaying = false;
+                        playIcon.style.display = 'block';
+                        stopIcon.style.display = 'none';
+                        videoPlayer.style.display = 'none';
+                        placeholderImg.style.display = 'block';
+                    });
+                });
+                videoPlayer.removeAttribute('loop');
+                console.log("Переключено на live HLS-поток");
+            } else if (isVideoStreamActive && videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                videoPlayer.src = '/hls/video_stream123.m3u8';
+                videoPlayer.removeAttribute('loop');
+                console.log("Переключено на нативный видео-HLS");
+                videoPlayer.play().catch(err => {
+                    console.error("Ошибка воспроизведения стрима:", err);
+                    videoPlayer.pause();
+                    isPlaying = false;
+                    playIcon.style.display = 'block';
+                    stopIcon.style.display = 'none';
+                    videoPlayer.style.display = 'none';
+                    placeholderImg.style.display = 'block';
+                });
+            } else {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                videoPlayer.src = '/images/vplace.MP4';
+                videoPlayer.setAttribute('loop', 'true');
+                videoPlayer.load();
+                console.log("Переключено на видео-заставку");
+                videoPlayer.play().catch(err => {
+                    console.error("Ошибка воспроизведения видео-заставки:", err);
+                    videoPlayer.pause();
+                    isPlaying = false;
+                    playIcon.style.display = 'block';
+                    stopIcon.style.display = 'none';
+                    videoPlayer.style.display = 'none';
+                    placeholderImg.style.display = 'block';
+                });
+            }
+            videoPlayer.style.display = 'block';
+            placeholderImg.style.display = 'none';
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                videoPlayer.pause();
+            } else {
+                isPlaying = true;
+                playIcon.style.display = 'none';
+                stopIcon.style.display = 'block';
+                updateVideoSource();
+            }
+        }
+
+        playStopBtn.addEventListener('click', togglePlay);
+
+        // Функция для обновления UI трека
+        function updateTrackUI(artist, title) {
+            if (isVideoStreamActive) {
+                trackArtist.textContent = "VTRNK";
+                trackTitle.textContent = "Video Stream";
+                console.log("Видео-стрим активен, отображаем VTRNK Video Stream");
+            } else {
+                trackArtist.textContent = artist || "VTRNK";
+                trackTitle.textContent = title || "Video Stream";
+                console.log("Видео-стрим неактивен, показываем аудио-трек или дефолт");
+            }
+        }
+
+        // Загружаем начальные данные
+        async function initialize() {
+            await checkStreamStatus();
+            fetch('/track')
+                .then(response => response.json())
+                .then(data => {
+                    const dataDict = {};
+                    data.forEach(item => {
+                        dataDict[item[0]] = item[1];
+                    });
+                    updateTrackUI(dataDict.artist, dataDict.title);
+                    console.log("Начальная загрузка UI завершена");
+                })
+                .catch(err => {
+                    console.error("Ошибка получения начального трека:", err);
+                    updateTrackUI("VTRNK", "Video Stream");
+                });
+            videoPlayer.style.display = 'none';
+            placeholderImg.style.display = 'block';
+        }
+
+        initialize();
+        setInterval(checkStreamStatus, 10000);
+
+        // Обновляем информацию о текущем треке через WebSocket
+        const socket = io('https://vtrnk.online');
+        socket.on('connect', () => console.log("WebSocket connection opened successfully"));
+        socket.on('track_update', (data) => {
+            if (!isVideoStreamActive) {
+                updateTrackUI(data.artist, data.title);
+                console.log("WebSocket обновил аудио-трек, видео неактивно");
+            } else {
+                console.log("WebSocket игнорируется, видео-стрим активен");
+            }
+        });
+        socket.on('disconnect', () => console.log("WebSocket connection closed"));
+
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', togglePlay);
+            navigator.mediaSession.setActionHandler('pause', togglePlay);
+        }
+    </script>
+</body>
+</html>
+
