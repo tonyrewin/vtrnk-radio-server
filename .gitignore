@@ -5,8 +5,10 @@
 audio/
 bot/
 #config/
+
 # Full config with sensitive
 config/icecast/icecast.xml 
+config/icecast/icecast_v2.xml
 # Full Nginx config
 config/nginx/vtrnk_radio.conf  
 config/systemd

@@ -1,0 +1,78 @@
+<icecast>
+    <hostname>${ICECAST_HOSTNAME}</hostname>
+    <location>Earth</location>
+    <admin>${ICECAST_ADMIN_EMAIL}</admin>
+
+    <limits>
+        <clients>100</clients>
+        <sources>4</sources> <!-- Поддержка 4 mounts: radio_v2_192, radio_v2_64, radio_v2_32, radio_v2_video -->
+        <queue-size>524288</queue-size>
+        <client-timeout>30</client-timeout>
+        <header-timeout>15</header-timeout>
+        <source-timeout>10</source-timeout>
+        <burst-on-connect>1</burst-on-connect>
+        <burst-size>65535</burst-size>
+    </limits>
+
+    <authentication>
+        <source-password>${SOURCE_PASSWORD_V2}</source-password>
+        <relay-password>${RELAY_PASSWORD}</relay-password>
+        <admin-user>admin</admin-user>
+        <admin-password>${ADMIN_PASSWORD}</admin-password>
+    </authentication>
+
+    <listen-socket>
+        <port>${ICECAST_V2_PORT}</port>
+        <bind-address>0.0.0.0</bind-address>
+    </listen-socket>
+
+    <http-headers>
+        <header name="Access-Control-Allow-Origin" value="*" />
+    </http-headers>
+
+    <mount type="normal">
+        <public>0</public>
+        <mount-name>/radio_v2_192</mount-name>
+    </mount>
+
+    <mount type="normal">
+        <public>0</public>
+        <mount-name>/radio_v2_64</mount-name>
+    </mount>
+
+    <mount type="normal">
+        <public>0</public>
+        <mount-name>/radio_v2_32</mount-name>
+    </mount>
+
+    <mount type="normal">
+        <public>0</public>
+        <mount-name>/radio_v2_video</mount-name>
+    </mount>
+
+    <fileserve>1</fileserve>
+
+    <paths>
+        <logdir>${ICECAST_V2_LOG_DIR}</logdir>
+        <webroot>/usr/share/icecast2/web/</webroot>
+        <adminroot>/usr/share/icecast2/admin/</adminroot>
+        <alias source="/" dest="/status.xsl"/>
+    </paths>
+
+    <logging>
+        <accesslog>access-v2.log</accesslog>
+        <errorlog>error-v2.log</errorlog>
+        <loglevel>3</loglevel>
+        <logsize>10000</logsize>
+    </logging>
+
+    <security>
+        <chroot>0</chroot>
+    </security>
+
+    <!-- Отключаем YP-каталоги -->
+    <directory>
+        <yp-url-timeout>15</yp-url-timeout>
+        <yp-url></yp-url>
+    </directory>
+</icecast>
