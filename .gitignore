@@ -15,7 +15,7 @@ hls/
 images/
 # liquidsoap/
 liquidsoap/radio.liq
-liquidsoap/radio-v2.liq
+liquidsoap/radio_v2.liq
 
 logs/
 # player/
