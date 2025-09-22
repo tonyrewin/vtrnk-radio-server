@@ -297,6 +297,7 @@ server {
     location /css/ {
         alias ${NGINX_CSS_DIR};
         autoindex off;
+        add_header Access-Control-Allow-Origin "*";
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
