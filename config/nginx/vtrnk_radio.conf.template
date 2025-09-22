@@ -1,24 +1,24 @@
 server {
     listen 80;
-    server_name YOUR_DOMAIN;
+    server_name ${NGINX_DOMAIN};
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name YOUR_DOMAIN;
-    ssl_certificate YOUR_SSL_CERT_PATH;
-    ssl_certificate_key YOUR_SSL_KEY_PATH;
-    include YOUR_SSL_OPTIONS_PATH;
-    ssl_dhparam YOUR_SSL_DHPARAM_PATH;
+    server_name ${NGINX_DOMAIN};
+    ssl_certificate ${NGINX_SSL_CERT};
+    ssl_certificate_key ${NGINX_SSL_KEY};
+    include ${NGINX_SSL_OPTIONS};
+    ssl_dhparam ${NGINX_SSL_DHPARAM};
     client_max_body_size 300M;
-    root YOUR_WEB_ROOT;
+    root ${NGINX_WEB_ROOT};
     index radio.html;
-    access_log YOUR_ACCESS_LOG;
-    error_log YOUR_ERROR_LOG warn;
+    access_log ${NGINX_ACCESS_LOG};
+    error_log ${NGINX_ERROR_LOG} warn;
 
     location /socket.io/ {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/socket.io/;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/socket.io/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -30,11 +30,11 @@ server {
         proxy_send_timeout 3600s;
         proxy_connect_timeout 3600s;
         keepalive_timeout 3600s;
-        access_log YOUR_SOCKET_IO_LOG;
+        access_log ${NGINX_SOCKET_IO_LOG};
     }
 
     location = /upload_radio_show {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/upload_radio_show;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/upload_radio_show;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -47,12 +47,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_UPLOAD_RADIO_LOG;
-        error_log YOUR_UPLOAD_RADIO_ERROR_LOG debug;
+        access_log ${NGINX_UPLOAD_RADIO_LOG};
+        error_log ${NGINX_UPLOAD_RADIO_ERROR_LOG} debug;
     }
 
     location = /upload_track {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/upload_track;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/upload_track;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -65,12 +65,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_UPLOAD_TRACK_LOG;
-        error_log YOUR_UPLOAD_TRACK_ERROR_LOG debug;
+        access_log ${NGINX_UPLOAD_TRACK_LOG};
+        error_log ${NGINX_UPLOAD_TRACK_ERROR_LOG} debug;
     }
 
     location = /delete_radio_show {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/delete_radio_show;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/delete_radio_show;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -82,12 +82,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_DELETE_RADIO_LOG;
-        error_log YOUR_DELETE_RADIO_ERROR_LOG debug;
+        access_log ${NGINX_DELETE_RADIO_LOG};
+        error_log ${NGINX_DELETE_RADIO_ERROR_LOG} debug;
     }
 
     location = /get_cover_path {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/get_cover_path;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/get_cover_path;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -95,11 +95,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_COVER_PATH_LOG;
+        access_log ${NGINX_COVER_PATH_LOG};
     }
 
     location = /track {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/track;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/track;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -107,11 +107,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_TRACK_LOG;
+        access_log ${NGINX_TRACK_LOG};
     }
 
     location = /smart_skip {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/smart_skip;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/smart_skip;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -123,12 +123,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_SMART_SKIP_LOG;
-        error_log YOUR_SMART_SKIP_ERROR_LOG debug;
+        access_log ${NGINX_SMART_SKIP_LOG};
+        error_log ${NGINX_SMART_SKIP_ERROR_LOG} debug;
     }
 
     location = /skip_track {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/skip_track;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/skip_track;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -136,11 +136,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_SKIP_TRACK_LOG;
+        access_log ${NGINX_SKIP_TRACK_LOG};
     }
 
     location = /play_jingle {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/play_jingle;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/play_jingle;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -148,11 +148,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_PLAY_JINGLE_LOG;
+        access_log ${NGINX_PLAY_JINGLE_LOG};
     }
 
     location /schedule {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -163,11 +163,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_SCHEDULE_LOG;
+        access_log ${NGINX_SCHEDULE_LOG};
     }
 
     location /play_radio_show {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -175,11 +175,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_PLAY_RADIO_LOG;
+        access_log ${NGINX_PLAY_RADIO_LOG};
     }
 
     location /play_playlist {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -187,11 +187,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_PLAY_PLAYLIST_LOG;
+        access_log ${NGINX_PLAY_PLAYLIST_LOG};
     }
 
     location = /update_show {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/update_show;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/update_show;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -204,12 +204,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_UPDATE_SHOW_LOG;
-        error_log YOUR_UPDATE_SHOW_ERROR_LOG debug;
+        access_log ${NGINX_UPDATE_SHOW_LOG};
+        error_log ${NGINX_UPDATE_SHOW_ERROR_LOG} debug;
     }
 
     location = /update_track_info {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -217,12 +217,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_UPDATE_TRACK_INFO_LOG;
-        error_log YOUR_UPDATE_TRACK_INFO_ERROR_LOG debug;
+        access_log ${NGINX_UPDATE_TRACK_INFO_LOG};
+        error_log ${NGINX_UPDATE_TRACK_INFO_ERROR_LOG} debug;
     }
 
     location /monitor/ {
-        proxy_pass http://YOUR_MONITOR_HOST:YOUR_MONITOR_PORT/;
+        proxy_pass http://${NGINX_MONITOR_HOST}:${NGINX_MONITOR_PORT}/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -233,12 +233,12 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_MONITOR_LOG;
-        error_log YOUR_MONITOR_ERROR_LOG debug;
+        access_log ${NGINX_MONITOR_LOG};
+        error_log ${NGINX_MONITOR_ERROR_LOG} debug;
     }
 
     location = /restart_liquidsoap {
-        proxy_pass http://YOUR_MONITOR_HOST:YOUR_MONITOR_PORT/restart_liquidsoap;
+        proxy_pass http://${NGINX_MONITOR_HOST}:${NGINX_MONITOR_PORT}/restart_liquidsoap;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -250,8 +250,8 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_RESTART_LIQUIDSOAP_LOG;
-        error_log YOUR_RESTART_LIQUIDSOAP_ERROR_LOG debug;
+        access_log ${NGINX_RESTART_LIQUIDSOAP_LOG};
+        error_log ${NGINX_RESTART_LIQUIDSOAP_ERROR_LOG} debug;
     }
 
     location = /radio.html {
@@ -259,7 +259,7 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_RADIO_HTML_LOG;
+        access_log ${NGINX_RADIO_HTML_LOG};
     }
 
     location = /tracks.html {
@@ -267,7 +267,7 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_TRACKS_HTML_LOG;
+        access_log ${NGINX_TRACKS_HTML_LOG};
     }
 
     location = /schedule.html {
@@ -275,32 +275,32 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_SCHEDULE_HTML_LOG;
+        access_log ${NGINX_SCHEDULE_HTML_LOG};
     }
 
     location /data/ {
         deny all;
         return 403;
-        access_log YOUR_DATA_LOG;
+        access_log ${NGINX_DATA_LOG};
     }
 
     location /images/ {
-        alias YOUR_IMAGES_DIR;
+        alias ${NGINX_IMAGES_DIR};
         autoindex off;
         add_header Access-Control-Allow-Origin "*";
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_IMAGES_LOG;
+        access_log ${NGINX_IMAGES_LOG};
     }
 
     location /css/ {
-        alias YOUR_CSS_DIR;
+        alias ${NGINX_CSS_DIR};
         autoindex off;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_CSS_LOG;
+        access_log ${NGINX_CSS_LOG};
     }
 
     location / {
@@ -308,11 +308,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_DEFAULT_LOG;
+        access_log ${NGINX_DEFAULT_LOG};
     }
 
     location = /tracks {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/tracks;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/tracks;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -320,51 +320,51 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_TRACKS_LOG;
+        access_log ${NGINX_TRACKS_LOG};
     }
 
     location = /styles {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/styles;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/styles;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_STYLES_LOG;
+        access_log ${NGINX_STYLES_LOG};
     }
 
     location = /update_style {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/update_style;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/update_style;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_UPDATE_STYLE_LOG;
+        access_log ${NGINX_UPDATE_STYLE_LOG};
     }
 
     location = /current_track {
-        proxy_pass http://YOUR_FLASK_HOST:YOUR_FLASK_PORT/current_track;
+        proxy_pass http://${NGINX_FLASK_HOST}:${NGINX_FLASK_PORT}/current_track;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_CURRENT_TRACK_LOG;
+        access_log ${NGINX_CURRENT_TRACK_LOG};
     }
 
     location = /show_current_track {
-        proxy_pass http://YOUR_MONITOR_HOST:YOUR_MONITOR_PORT/show_current_track;
+        proxy_pass http://${NGINX_FLASK_HOST}:5003/show_current_track;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_SHOW_CURRENT_TRACK_LOG;
+        access_log ${NGINX_SHOW_CURRENT_TRACK_LOG};
     }
 
     location = /radio_stream {
-        proxy_pass http://YOUR_ICECAST_HOST:YOUR_ICECAST_PORT/radio_stream;
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_PORT}/radio_stream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -376,37 +376,104 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_RADIO_STREAM_LOG;
+        access_log ${NGINX_RADIO_STREAM_LOG};
     }
 
     location = /show_stream {
-        proxy_pass http://YOUR_ICECAST_HOST:YOUR_ICECAST_PORT/show_stream;
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_PORT}/show_stream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_SHOW_STREAM_LOG;
+        access_log ${NGINX_SHOW_STREAM_LOG};
     }
 
     location = /status-json.xsl {
-        proxy_pass http://YOUR_ICECAST_HOST:YOUR_ICECAST_PORT/status-json.xsl;
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_PORT}/status-json.xsl;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_STATUS_JSON_LOG;
+        access_log ${NGINX_STATUS_JSON_LOG};
     }
 
     location = /video_stream {
-        proxy_pass http://YOUR_ICECAST_HOST:YOUR_ICECAST_PORT/video_stream;
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_PORT}/video_stream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
-        access_log YOUR_VIDEO_STREAM_LOG;
+        access_log ${NGINX_VIDEO_STREAM_LOG};
+    }
+
+    location = /radio_v2_192 {
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_V2_PORT}/radio_v2_192;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_connect_timeout 3600s;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+        access_log ${NGINX_RADIO_V2_192_LOG};
+    }
+
+    location = /radio_v2_64 {
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_V2_PORT}/radio_v2_64;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_connect_timeout 3600s;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+        access_log ${NGINX_RADIO_V2_64_LOG};
+    }
+
+    location = /radio_v2_32 {
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_V2_PORT}/radio_v2_32;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_connect_timeout 3600s;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+        access_log ${NGINX_RADIO_V2_32_LOG};
+    }
+
+    location = /radio_v2_video {
+        proxy_pass http://${NGINX_ICECAST_HOST}:${NGINX_ICECAST_V2_PORT}/radio_v2_video;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_connect_timeout 3600s;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+        add_header Access-Control-Allow-Origin "*";
+        add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS";
+        add_header Access-Control-Allow-Headers "Range, Accept";
+        access_log ${NGINX_RADIO_V2_VIDEO_LOG};
     }
 
     location /hls {
@@ -414,13 +481,13 @@ server {
             application/vnd.apple.mpegurl m3u8;
             video/mp2t ts;
         }
-        alias YOUR_HLS_DIR;
+        alias ${NGINX_HLS_DIR};
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         add_header Expires "0";
         add_header Access-Control-Allow-Origin "*";
         add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS";
         add_header Access-Control-Allow-Headers "Range, Accept";
-        access_log YOUR_HLS_LOG;
+        access_log ${NGINX_HLS_LOG};
     }
 }
