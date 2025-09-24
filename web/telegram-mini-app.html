@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VTRNK Internet Radio в Telegram</title>
+    <link rel="icon" href="/images/icon.png">
+    <!-- Telegram Web App JS -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Socket.io -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- ColorThief -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.4.0/color-thief.umd.js"></script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, black);
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: var(--tg-theme-text-color, white);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.5s;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 5px;
+        }
+        .equalizer {
+            height: 40px;
+            width: 200px;
+            margin-bottom: 15px;
+        }
+        .equalizer canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .track-info {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        #now-playing {
+            font-size: 16px;
+            color: var(--tg-theme-hint-color, #ccc);
+        }
+        #track-artist {
+            font-size: 18px;
+            margin: 5px 0 0 0;
+            color: var(--tg-theme-text-color, white);
+        }
+        #track-title {
+            font-size: 16px;
+            margin: 2px 0 0 0;
+            color: var(--tg-theme-secondary-text-color, #ddd);
+        }
+        .poster-container {
+            width: 100%;
+            max-width: 400px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background-color: var(--tg-theme-secondary-bg-color, #1a1a1a);
+        }
+        .poster {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .play-stop-btn {
+            width: 80px;
+            height: 40px;
+            background: var(--tg-theme-button-color, #333);
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            color: var(--tg-theme-button-text-color, white);
+        }
+        .play-stop-btn:hover {
+            background: var(--tg-theme-button-color-hover, #555);
+        }
+        .play-stop-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .play-stop-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--tg-theme-button-text-color, white);
+        }
+        /* Убрали футер и гамбургер, используем Telegram's интерфейс */
+        @media (max-width: 600px) {
+            .container {
+                max-width: 320px;
+            }
+            .poster-container {
+                height: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/images/logovtrnk.png" alt="Логотип" class="logo">
+        <div class="equalizer">
+            <canvas id="equalizer"></canvas>
+        </div>
+        <div class="track-info">
+            <p id="now-playing">Сейчас в эфире</p>
+            <p id="track-artist">Ожидание исполнителя...</p>
+            <p id="track-title">Ожидание трека...</p>
+        </div>
+        <div class="poster-container">
+            <img id="track-poster" src="/images/placeholder2.png" alt="Постер" class="poster">
+        </div>
+        <button class="play-stop-btn" id="play-stop">
+            <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="stop-icon" viewBox="0 0 24 24" style="display: none;"><path d="M6 6h12v12H6z"/></svg>
+        </button>
+        <audio id="player" style="display: none;" playsinline preload="auto"></audio>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Разворачиваем на full-screen
+
+        // Адаптация темы под Telegram
+        document.body.style.backgroundColor = tg.themeParams.bg_color || 'black';
+
+        const player = document.getElementById('player');
+        const trackArtist = document.getElementById('track-artist');
+        const trackTitle = document.getElementById('track-title');
+        const trackPoster = document.getElementById('track-poster');
+        const playStopBtn = document.getElementById('play-stop');
+        const playIcon = document.getElementById('play-icon');
+        const stopIcon = document.getElementById('stop-icon');
+        let isPlaying = false;
+
+        let lastTrackData = {
+            artist: "VTRNK",
+            title: "Radio Show",
+            coverPath: "/images/placeholder2.png"
+        };
+
+        // Equalizer (тот же код)
+        const canvas = document.getElementById('equalizer');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 40;
+        const barCount = 14;
+        const barWidth = (canvas.width / barCount) - 2;
+        let bars = [];
+        for (let i = 0; i < barCount; i++) {
+            bars.push({
+                height: Math.random() * canvas.height,
+                speed: Math.random() * 1.3 + 0.7
+            });
+        }
+        function drawEqualizer() {
+            requestAnimationFrame(drawEqualizer);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let x = 0;
+            for (let i = 0; i < barCount; i++) {
+                let bar = bars[i];
+                if (player.paused) {
+                    bar.height = 5;
+                } else {
+                    bar.height += bar.speed;
+                    if (bar.height > canvas.height || bar.height < 0) {
+                        bar.speed = -bar.speed;
+                    }
+                }
+                ctx.fillStyle = tg.themeParams.hint_color || '#d3d3d3';
+                ctx.fillRect(x, canvas.height - bar.height, barWidth, bar.height);
+                x += barWidth + 2;
+            }
+        }
+        drawEqualizer();
+
+        // Toggle play (тот же)
+        player.addEventListener('error', (e) => console.error("Ошибка воспроизведения:", e));
+        player.addEventListener('play', () => {
+            playIcon.style.display = 'none';
+            stopIcon.style.display = 'block';
+            isPlaying = true;
+        });
+        player.addEventListener('pause', () => {
+            playIcon.style.display = 'block';
+            stopIcon.style.display = 'none';
+            isPlaying = false;
+        });
+
+        function togglePlay() {
+            if (!player.src) {
+                player.src = "/radio_stream";
+                player.load();
+            }
+            if (isPlaying) {
+                player.pause();
+            } else {
+                player.play().catch(err => console.error("Ошибка:", err));
+            }
+        }
+
+        playStopBtn.addEventListener('click', togglePlay);
+
+        // Update background (адаптировано под Telegram тему, но сохранили ColorThief для динамики)
+        function updateBackgroundColor(imageSrc) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = imageSrc;
+            img.onload = () => {
+                const colorThief = new ColorThief();
+                const dominantColor = colorThief.getColor(img);
+                document.body.style.backgroundColor = `rgb(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]})`;
+            };
+        }
+
+        // Update UI (тот же)
+        function updateTrackUI(artist, title, coverPath) {
+            trackArtist.textContent = artist || "VTRNK";
+            trackTitle.textContent = title || "Radio Show";
+            trackPoster.src = coverPath || "/images/placeholder2.png";
+            updateBackgroundColor(trackPoster.src);
+
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: title || "Radio Show",
+                    artist: artist || "VTRNK",
+                    artwork: [{ src: trackPoster.src, sizes: '192x192', type: 'image/png' }]
+                });
+            }
+        }
+
+        // Initial fetch (тот же)
+        fetch('/track')
+            .then(response => response.json())
+            .then(data => {
+                const dataDict = {};
+                data.forEach(item => dataDict[item[0]] = item[1]);
+                lastTrackData.artist = dataDict.artist || "VTRNK";
+                lastTrackData.title = dataDict.title || "Radio Show";
+
+                fetch('/get_cover_path')
+                    .then(response => response.json())
+                    .then(coverData => {
+                        lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                        updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                    });
+            })
+            .catch(err => {
+                updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+            });
+
+        // WebSocket (тот же, подключи к твоему серверу)
+        const socket = io('https://vtrnk.online');
+
+        socket.on('connect', () => {
+            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+        });
+
+        socket.on('track_update', (data) => {
+            lastTrackData.artist = data.artist || "VTRNK";
+            lastTrackData.title = data.title || "Radio Show";
+
+            fetch('/get_cover_path')
+                .then(response => response.json())
+                .then(coverData => {
+                    lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                });
+        });
+
+        socket.on('disconnect', () => {
+            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+        });
+
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', togglePlay);
+            navigator.mediaSession.setActionHandler('pause', togglePlay);
+        }
+
+        // Telegram-specific: Закрытие приложения
+        tg.MainButton.text = "Закрыть";
+        tg.MainButton.onClick(() => tg.close());
+        tg.MainButton.show();
+    </script>
+</body>
+</html>
