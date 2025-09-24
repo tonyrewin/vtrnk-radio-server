@@ -29,8 +29,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 10px;
+            justify-content: flex-start;
+            padding: 5px;
             width: 100%;
             max-width: 400px;
             margin: 0 auto;
@@ -38,13 +38,13 @@
             z-index: 1;
         }
         .logo {
-            max-width: 200px;
-            margin-bottom: 5px;
+            max-width: 140px;
+            margin-bottom: 3px;
         }
         .equalizer {
             height: 40px;
             width: 200px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .equalizer canvas {
             width: 100%;
@@ -52,31 +52,32 @@
         }
         .track-info {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            min-height: 60px;
+            overflow: visible;
         }
         #now-playing {
             font-size: 16px;
-            color: var(--tg-theme-hint-color, #ccc);
+            color: #ffffff !important; /* Изменили на белый */
         }
         #track-artist {
             font-size: 18px;
             margin: 5px 0 0 0;
-            color: var(--tg-theme-text-color, white);
+            color: #ffffff !important; /* Изменили на белый */
         }
         #track-title {
             font-size: 16px;
             margin: 2px 0 0 0;
-            color: var(--tg-theme-secondary-text-color, #ddd);
+            color: #ffffff !important; /* Изменили на белый */
         }
         .poster-container {
-            width: 100%;
-            max-width: 400px;
-            height: 400px;
+            width: 240px;
+            height: 240px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             background-color: var(--tg-theme-secondary-bg-color, #1a1a1a);
         }
         .poster {
@@ -109,13 +110,13 @@
             height: 24px;
             fill: var(--tg-theme-button-text-color, white);
         }
-        /* Убрали футер и гамбургер, используем Telegram's интерфейс */
         @media (max-width: 600px) {
             .container {
                 max-width: 320px;
             }
             .poster-container {
-                height: 320px;
+                width: 240px;
+                height: 240px;
             }
         }
     </style>
@@ -142,12 +143,10 @@
     </div>
 
     <script>
-        // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand(); // Разворачиваем на full-screen
+        tg.expand();
 
-        // Адаптация темы под Telegram
         document.body.style.backgroundColor = tg.themeParams.bg_color || 'black';
 
         const player = document.getElementById('player');
@@ -165,7 +164,6 @@
             coverPath: "/images/placeholder2.png"
         };
 
-        // Equalizer (тот же код)
         const canvas = document.getElementById('equalizer');
         const ctx = canvas.getContext('2d');
         canvas.width = 200;
@@ -193,14 +191,13 @@
                         bar.speed = -bar.speed;
                     }
                 }
-                ctx.fillStyle = tg.themeParams.hint_color || '#d3d3d3';
+                ctx.fillStyle = '#ffffff';
                 ctx.fillRect(x, canvas.height - bar.height, barWidth, bar.height);
                 x += barWidth + 2;
             }
         }
         drawEqualizer();
 
-        // Toggle play (тот же)
         player.addEventListener('error', (e) => console.error("Ошибка воспроизведения:", e));
         player.addEventListener('play', () => {
             playIcon.style.display = 'none';
@@ -227,7 +224,6 @@
 
         playStopBtn.addEventListener('click', togglePlay);
 
-        // Update background (адаптировано под Telegram тему, но сохранили ColorThief для динамики)
         function updateBackgroundColor(imageSrc) {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
@@ -239,8 +235,8 @@
             };
         }
 
-        // Update UI (тот же)
         function updateTrackUI(artist, title, coverPath) {
+            console.log("Updating UI with:", { artist, title, coverPath });
             trackArtist.textContent = artist || "VTRNK";
             trackTitle.textContent = title || "Radio Show";
             trackPoster.src = coverPath || "/images/placeholder2.png";
@@ -255,46 +251,70 @@
             }
         }
 
-        // Initial fetch (тот же)
-        fetch('/track')
-            .then(response => response.json())
-            .then(data => {
-                const dataDict = {};
-                data.forEach(item => dataDict[item[0]] = item[1]);
-                lastTrackData.artist = dataDict.artist || "VTRNK";
-                lastTrackData.title = dataDict.title || "Radio Show";
+        function fetchTrack() {
+            fetch('/track')
+                .then(response => {
+                    console.log("Fetch /track response:", response.status);
+                    if (!response.ok) throw new Error("Ошибка /track: " + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Fetched track data:", data);
+                    const dataDict = {};
+                    data.forEach(item => dataDict[item[0]] = item[1]);
+                    lastTrackData.artist = dataDict.artist || "VTRNK";
+                    lastTrackData.title = dataDict.title || "Radio Show";
 
-                fetch('/get_cover_path')
-                    .then(response => response.json())
-                    .then(coverData => {
-                        lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
-                        updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
-                    });
-            })
-            .catch(err => {
-                updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
-            });
+                    fetch('/get_cover_path')
+                        .then(response => {
+                            console.log("Fetch /get_cover_path response:", response.status);
+                            return response.json();
+                        })
+                        .then(coverData => {
+                            console.log("Fetched cover data:", coverData);
+                            lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                        })
+                        .catch(err => {
+                            console.error("Ошибка /get_cover_path:", err);
+                            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                        });
+                })
+                .catch(err => {
+                    console.error("Ошибка /track:", err);
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                });
+        }
 
-        // WebSocket (тот же, подключи к твоему серверу)
+        fetchTrack();
+
         const socket = io('https://vtrnk.online');
 
         socket.on('connect', () => {
-            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+            console.log("WebSocket connected");
+            fetchTrack();
         });
 
         socket.on('track_update', (data) => {
+            console.log("WebSocket track_update:", data);
             lastTrackData.artist = data.artist || "VTRNK";
             lastTrackData.title = data.title || "Radio Show";
 
             fetch('/get_cover_path')
                 .then(response => response.json())
                 .then(coverData => {
+                    console.log("Fetched cover data (WebSocket):", coverData);
                     lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                })
+                .catch(err => {
+                    console.error("Ошибка /get_cover_path (WebSocket):", err);
                     updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
                 });
         });
 
         socket.on('disconnect', () => {
+            console.log("WebSocket disconnected");
             updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
         });
 
@@ -303,7 +323,6 @@
             navigator.mediaSession.setActionHandler('pause', togglePlay);
         }
 
-        // Telegram-specific: Закрытие приложения
         tg.MainButton.text = "Закрыть";
         tg.MainButton.onClick(() => tg.close());
         tg.MainButton.show();
