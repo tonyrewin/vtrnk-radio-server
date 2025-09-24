@@ -37,7 +37,7 @@ BASE_DIR = '/home/beasty197/projects/vtrnk_radio'
 
 async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
             logger.info("Fetching track data for /radio")
             async with session.get("https://vtrnk.online/track") as track_response:
                 track_data = await track_response.json()
@@ -89,7 +89,7 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
     announced_track = None  # Последний трек, о котором был пост
     while True:
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
                 logger.info("Fetching track data for podcast monitoring")
                 async with session.get("https://vtrnk.online/track") as track_response:
                     track_data = await track_response.json()
@@ -118,15 +118,13 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             file_path = f"{BASE_DIR}{cover_path}" if cover_path.startswith("/") else cover_path
                             logger.info(f"Local file path for podcast: {file_path}")
 
-                        # Используем URL-кнопку для чата
                         keyboard = [[InlineKeyboardButton("Слушать радио", url="https://vtrnk.online/telegram-mini-app.html")]]
                         reply_markup = InlineKeyboardMarkup(keyboard)
 
-                        # Проверяем существование файла
                         if os.path.exists(file_path) and os.path.isfile(file_path):
                             logger.info(f"Sending cover as file: {file_path}")
                             with open(file_path, 'rb') as photo:
-                                caption = f"Сейчас у нас в эфире радио подкаст {new_title} от {new_artist}. Подключайтесь!"
+                                caption = f"Сейчас у нас в эфире радио подкаст {new_title} от {new_artist}. Подключайтесь!\nСлушай на VTRNK Radio: https://vtrnk.online"
                                 logger.info(f"Sending podcast notification: {caption}")
                                 await context.bot.send_photo(
                                     chat_id=CHAT_ID,
@@ -138,7 +136,7 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             logger.error(f"Cover file not found: {file_path}")
                             cover_url = "https://vtrnk.online/images/placeholder2.png"
                             logger.info(f"Falling back to default cover URL: {cover_url}")
-                            caption = f"Сейчас у нас в эфире радио подкаст {new_title} от {new_artist}. Подключайтесь!"
+                            caption = f"Сейчас у нас в эфире радио подкаст {new_title} от {new_artist}. Подключайтесь!\nСлушай на VTRNK Radio: https://vtrnk.online"
                             await context.bot.send_photo(
                                 chat_id=CHAT_ID,
                                 photo=cover_url,
