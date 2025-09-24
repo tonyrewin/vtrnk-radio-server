@@ -52,12 +52,16 @@ async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 file_path = f"{BASE_DIR}{cover_path}" if cover_path.startswith("/") else cover_path
                 logger.info(f"Local file path for /radio: {file_path}")
 
+        # Проверяем, в чате или в личке
+        is_group = update.message.chat.type in ['group', 'supergroup']
+        button_type = {'url': 'https://vtrnk.online/telegram-mini-app.html'} if is_group else {'web_app': {'url': 'https://vtrnk.online/telegram-mini-app.html'}}
+        keyboard = [[InlineKeyboardButton("Слушать радио", **button_type)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         # Проверяем существование файла
         if os.path.exists(file_path) and os.path.isfile(file_path):
             logger.info(f"Sending cover as file: {file_path}")
             with open(file_path, 'rb') as photo:
-                keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
                 caption = f"Сейчас в эфире: {title} от {artist}\nСлушай на VTRNK Radio: https://vtrnk.online"
                 logger.info(f"Sending /radio response: {caption}")
                 await update.message.reply_photo(
@@ -69,8 +73,6 @@ async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Cover file not found: {file_path}")
             cover_url = "https://vtrnk.online/images/placeholder2.png"
             logger.info(f"Falling back to default cover URL: {cover_url}")
-            keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
             caption = f"Сейчас в эфире: {title} от {artist}\nСлушай на VTRNK Radio: https://vtrnk.online"
             await update.message.reply_photo(
                 photo=cover_url,
@@ -116,13 +118,15 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             file_path = f"{BASE_DIR}{cover_path}" if cover_path.startswith("/") else cover_path
                             logger.info(f"Local file path for podcast: {file_path}")
 
+                        # Используем URL-кнопку для чата
+                        keyboard = [[InlineKeyboardButton("Слушать радио", url="https://vtrnk.online/telegram-mini-app.html")]]
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+
                         # Проверяем существование файла
                         if os.path.exists(file_path) and os.path.isfile(file_path):
                             logger.info(f"Sending cover as file: {file_path}")
                             with open(file_path, 'rb') as photo:
                                 caption = f"Сейчас у нас в эфире радио подкаст {new_title} от {new_artist}. Подключайтесь!"
-                                keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
-                                reply_markup = InlineKeyboardMarkup(keyboard)
                                 logger.info(f"Sending podcast notification: {caption}")
                                 await context.bot.send_photo(
                                     chat_id=CHAT_ID,
@@ -135,8 +139,6 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             cover_url = "https://vtrnk.online/images/placeholder2.png"
                             logger.info(f"Falling back to default cover URL: {cover_url}")
                             caption = f"Сейчас у нас в эфире радио подкаст {new_title} от {new_artist}. Подключайтесь!"
-                            keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
-                            reply_markup = InlineKeyboardMarkup(keyboard)
                             await context.bot.send_photo(
                                 chat_id=CHAT_ID,
                                 photo=cover_url,
