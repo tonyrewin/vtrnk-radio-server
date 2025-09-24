@@ -3,7 +3,11 @@
 .env
 
 audio/
-bot/
+# bot/
+bot/vtrnk_bot.py
+bot/bot.py
+
+
 #config/
 
 # Full config with sensitive
