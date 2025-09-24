@@ -32,21 +32,6 @@ CHAT_ID = os.getenv('CHAT_ID')
 RADIO_SHOW_DIR = '/home/beasty197/projects/vtrnk_radio/audio/radio_show'
 
 async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://vtrnk.online/get_cover_path") as response:
-            cover_data = await response.json()
-            cover_url = cover_data.get("cover_path", "https://vtrnk.online/images/placeholder2.png")
-
-        keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_photo(
-            photo=cover_url,
-            caption="Текущий трек на VTRNK Radio!",
-            reply_markup=reply_markup
-        )
-
-async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         async with aiohttp.ClientSession() as session:
             # Получаем текущий трек
@@ -69,9 +54,9 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption=caption,
             reply_markup=reply_markup
         )
-        logger.info(f"Sent /info response: {title} by {artist}")
+        logger.info(f"Sent /radio response: {title} by {artist}")
     except Exception as e:
-        logger.error(f"Error in /info: {str(e)}")
+        logger.error(f"Error in /radio: {str(e)}")
         await update.message.reply_text("Не удалось получить информацию о текущем треке. Попробуйте позже!")
 
 async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
@@ -133,7 +118,6 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("radio", radio))
-    application.add_handler(CommandHandler("info", info))
     application.job_queue.run_repeating(monitor_podcast, interval=60, first=0)
     application.run_polling()
 
