@@ -4,21 +4,21 @@ import sqlite3
 import json
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3  # Для извлечения обложки
+from mutagen.id3 import ID3
 import logging
 import logging.handlers
 from dotenv import load_dotenv
 
 # Загрузка .env
-load_dotenv()
+load_dotenv('/home/beasty197/projects/vtrnk_radio/.env')
 
-# Настройка логирования с ротацией
+# Настройка логирования
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.handlers.RotatingFileHandler(
     filename=os.path.join(os.getenv('LOGS_DIR'), 'track_watcher.log'),
     maxBytes=5*1024*1024,  # 5 МБ
-    backupCount=5  # Хранить до 5 файлов логов (итого 25 МБ максимум)
+    backupCount=5
 )
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
@@ -38,7 +38,17 @@ TRACKS_DATA_DIR = os.getenv('TRACKS_DATA_DIR')
 PLACEHOLDER_COVER = os.getenv('PLACEHOLDER_COVER')
 RADIO_SHOW_LIMIT = int(os.getenv('RADIO_SHOW_LIMIT', 20))
 
-# Создаём директории для обложек, если их нет
+# Проверка переменных
+logger.debug(f"AUDIO_DIRS: {AUDIO_DIRS}")
+logger.debug(f"COVER_DIR: {COVER_DIR}")
+logger.debug(f"SHOW_COVER_DIR: {SHOW_COVER_DIR}")
+logger.debug(f"JINGLE_COVER_DIR: {JINGLE_COVER_DIR}")
+logger.debug(f"DB_PATH: {DB_PATH}")
+logger.debug(f"TRACKS_DATA_DIR: {TRACKS_DATA_DIR}")
+logger.debug(f"PLACEHOLDER_COVER: {PLACEHOLDER_COVER}")
+logger.debug(f"RADIO_SHOW_LIMIT: {RADIO_SHOW_LIMIT}")
+
+# Создаём директории
 os.makedirs(COVER_DIR, exist_ok=True)
 os.makedirs(SHOW_COVER_DIR, exist_ok=True)
 os.makedirs(JINGLE_COVER_DIR, exist_ok=True)
@@ -127,6 +137,20 @@ def init_db():
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
 
+def check_file_stable(file_path, check_interval=2, checks=3):
+    """Проверяем, стабилен ли файл (не меняется размер)."""
+    prev_size = -1
+    for _ in range(checks):
+        if not os.path.exists(file_path):
+            return False
+        current_size = os.path.getsize(file_path)
+        if current_size == prev_size:
+            time.sleep(check_interval)
+            continue
+        prev_size = current_size
+        time.sleep(check_interval)
+    return prev_size > 0
+
 def extract_cover(file_path):
     try:
         audio = ID3(file_path)
@@ -144,27 +168,22 @@ def get_track_metadata(file_path):
         artist = audio.get('artist', [''])[0]
         title = audio.get('title', [''])[0]
         style = audio.get('genre', [''])[0]
-
         # Определяем тип записи по директории
-        if AUDIO_RADIO_SHOW_DIR in file_path:
-            # Для радио-шоу
+        if os.getenv('AUDIO_RADIO_SHOW_DIR') in file_path:
             if not artist or artist == '':
                 artist = 'VTRNK'
             if not title or title == '':
                 title = 'Radio Show'
-        elif AUDIO_JINGLES_DIR in file_path:
-            # Для джинглов
+        elif os.getenv('AUDIO_JINGLES_DIR') in file_path:
             if not artist or artist == '':
                 artist = 'VTRNK Jingle'
             if not title or title == '':
                 title = os.path.basename(file_path).replace('.mp3', '')
         else:
-            # Для треков (/mp3)
             if not artist or artist == '':
                 artist = 'Unknown Artist'
             if not title or title == '':
                 title = os.path.basename(file_path).replace('.mp3', '')
-
         if style:
             style = normalize_style(style)
         else:
@@ -178,11 +197,10 @@ def get_track_metadata(file_path):
         return artist, title, style
     except Exception as e:
         logger.warning(f"No ID3 tags found for {file_path}: {str(e)}")
-        # Определяем тип записи по директории
-        if AUDIO_RADIO_SHOW_DIR in file_path:
+        if os.getenv('AUDIO_RADIO_SHOW_DIR') in file_path:
             artist = 'VTRNK'
             title = 'Radio Show'
-        elif AUDIO_JINGLES_DIR in file_path:
+        elif os.getenv('AUDIO_JINGLES_DIR') in file_path:
             artist = 'VTRNK Jingle'
             title = os.path.basename(file_path).replace('.mp3', '')
         else:
@@ -250,59 +268,55 @@ def add_track_to_db(mp3_name, audio_path):
         if existing_track:
             logger.debug(f"Track {mp3_name} already exists in database with status 'available', skipping.")
             return
-
-        time.sleep(2)
+        # Проверка стабильности файла
+        time.sleep(5)
+        if not check_file_stable(audio_path):
+            logger.warning(f"File {audio_path} is not stable, skipping for now.")
+            return
         conn = get_db()
         cursor = conn.cursor()
-
-        if AUDIO_RADIO_SHOW_DIR in audio_path:
+        # Определяем директорию для обложки по папке аудио
+        if os.getenv('AUDIO_RADIO_SHOW_DIR') in audio_path:
             cover_dir = SHOW_COVER_DIR
             cover_base_path = '/images/show_covers/'
-        elif AUDIO_JINGLES_DIR in audio_path:
+            track_info = 'radio_show'
+        elif os.getenv('AUDIO_JINGLES_DIR') in audio_path:
             cover_dir = JINGLE_COVER_DIR
             cover_base_path = '/images/jingle_covers/'
+            track_info = 'jingle'
         else:
             cover_dir = COVER_DIR
             cover_base_path = '/images/track_covers/'
-
+            track_info = 'track'
         cover_data = extract_cover(audio_path)
         cover_path = os.path.join(cover_dir, mp3_name.replace('.mp3', '.jpg'))
-        cover = cover_base_path + mp3_name.replace('.mp3', '.jpg') if cover_data else PLACEHOLDER_COVER
         cover_saved = False
-
         if cover_data:
             try:
                 with open(cover_path, 'wb') as f:
                     f.write(cover_data)
-                logger.info(f"Сохранена обложка: {cover_path}")
+                logger.info(f"Сохранена обложка из MP3: {cover_path}")
                 cover_saved = True
             except Exception as e:
-                logger.error(f"Ошибка сохранения обложки {cover_path}: {str(e)}")
-                cover = PLACEHOLDER_COVER
-
+                logger.error(f"Ошибка сохранения обложки из MP3 {cover_path}: {str(e)}")
+        # Fallback: проверяем, есть ли внешняя обложка
+        if not cover_saved and os.path.exists(cover_path):
+            logger.info(f"Найдена внешняя обложка: {cover_path}, используем её.")
+            cover_saved = True
+        cover = cover_base_path + mp3_name.replace('.mp3', '.jpg') if cover_saved else PLACEHOLDER_COVER
+        path_img = cover
         artist, title, style = get_track_metadata(audio_path)
         duration = get_track_duration(audio_path)
         full_title = f"{artist} - {title}" if artist != "Unknown Artist" else title
         uploaded_by = get_uploaded_by(mp3_name)
         upload_date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getctime(audio_path)))
-
-        if AUDIO_JINGLES_DIR in audio_path:
-            track_info = 'jingle'
-        elif AUDIO_RADIO_SHOW_DIR in audio_path:
-            track_info = 'radio_show'
-        else:
-            track_info = 'track'
-
-        path = audio_path
-        path_img = cover_base_path + mp3_name.replace('.mp3', '.jpg') if cover_saved else PLACEHOLDER_COVER
-
         cursor.execute("""
             INSERT INTO tracks (name, title, artist, track_title, cover, duration, style, status, playcount, upload_date, uploaded_by, path, track_info, path_img)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'available', 0, ?, ?, ?, ?, ?)
-        """, (mp3_name, full_title, artist, title, cover, duration, style, upload_date, uploaded_by, path, track_info, path_img))
+        """, (mp3_name, full_title, artist, title, cover, duration, style, upload_date, uploaded_by, audio_path, track_info, path_img))
         conn.commit()
         logger.info(
-            f"Added track to db: {mp3_name} | Title: {full_title} | Artist: {artist} | Track Title: {title} | Duration: {duration}s | Cover: {cover} | Style: {style} | Uploaded by: {uploaded_by} | Upload date: {upload_date} | Path: {path} | Track Info: {track_info} | Path Img: {path_img}")
+            f"Added track to db: {mp3_name} | Title: {full_title} | Artist: {artist} | Track Title: {title} | Duration: {duration}s | Cover: {cover} | Style: {style} | Uploaded by: {uploaded_by} | Upload date: {upload_date} | Path: {audio_path} | Track Info: {track_info} | Path Img: {path_img} | Cover saved: {cover_saved}")
     except Exception as e:
         logger.error(f"Error adding track {mp3_name} to database: {str(e)}")
     finally:
@@ -316,15 +330,12 @@ def sync_db_with_folder(current_files):
         cursor.execute("SELECT name FROM tracks WHERE status = 'available'")
         db_files = set(row['name'] for row in cursor.fetchall())
         logger.debug(f"Files in database (status='available'): {db_files}")
-
         logger.debug(f"Files on disk: {current_files}")
-
         missing_in_folder = db_files - current_files
         logger.debug(f"Files missing in folder: {missing_in_folder}")
         for mp3_name in missing_in_folder:
             cursor.execute("UPDATE tracks SET status = 'deleted' WHERE name = ?", (mp3_name,))
             logger.info(f"Marked as deleted in db: {mp3_name}")
-
         conn.commit()
         logger.debug("Database synchronized with folder (marked deleted tracks)")
     except Exception as e:
@@ -339,7 +350,6 @@ def delete_marked_files():
         cursor.execute("SELECT id, name, path FROM tracks WHERE status = 'deleted'")
         deleted_tracks = cursor.fetchall()
         logger.debug(f"Tracks to delete (status='deleted'): {[(track['name'], track['path']) for track in deleted_tracks]}")
-
         for track in deleted_tracks:
             track_id = track['id']
             name = track['name']
@@ -356,7 +366,6 @@ def delete_marked_files():
                 logger.info(f"Removed track from database: {name}")
             except Exception as e:
                 logger.error(f"Error processing track {name}: {str(e)}")
-
         conn.commit()
         logger.debug("Processed tracks marked as deleted")
     except Exception as e:
@@ -365,20 +374,16 @@ def delete_marked_files():
         conn.close()
 
 def manage_radio_shows():
-    """Ограничение количества радио-шоу до RADIO_SHOW_LIMIT, удаление старых файлов."""
-    radio_show_dir = AUDIO_RADIO_SHOW_DIR
+    radio_show_dir = os.getenv('AUDIO_RADIO_SHOW_DIR')
     if not os.path.exists(radio_show_dir):
         logger.warning(f"Directory {radio_show_dir} does not exist")
         return
-
     radio_show_files = [f for f in os.listdir(radio_show_dir) if f.endswith('.mp3')]
     if len(radio_show_files) <= RADIO_SHOW_LIMIT:
         logger.debug(f"Number of radio shows ({len(radio_show_files)}) is within limit ({RADIO_SHOW_LIMIT})")
         return
-
     radio_show_files_with_paths = [(f, os.path.join(radio_show_dir, f)) for f in radio_show_files]
     radio_show_files_with_paths.sort(key=lambda x: os.path.getctime(x[1]))
-
     files_to_delete = radio_show_files_with_paths[RADIO_SHOW_LIMIT:]
     for file_name, file_path in files_to_delete:
         try:
@@ -399,6 +404,9 @@ def watch_directory():
     init_db()
     initial_files = set()
     for audio_dir in AUDIO_DIRS:
+        if audio_dir is None:
+            logger.error(f"Audio directory is None, check .env configuration")
+            continue
         if os.path.exists(audio_dir):
             dir_files = set(os.path.join(audio_dir, f) for f in os.listdir(audio_dir) if f.endswith('.mp3'))
             initial_files.update(dir_files)
@@ -406,21 +414,21 @@ def watch_directory():
             logger.warning(f"Directory {audio_dir} does not exist")
     initial_file_names = set(os.path.basename(f) for f in initial_files)
     logger.info(f"Found {len(initial_file_names)} existing tracks to process")
-
     for file_path in initial_files:
         mp3_name = os.path.basename(file_path)
         logger.debug(f"Processing initial track: {mp3_name}")
         add_track_to_db(mp3_name, file_path)
-
     known_files = initial_file_names
     logger.debug(f"Initial known files: {known_files}")
-
     logger.info("Starting watch directory loop")
     while True:
         try:
             logger.debug(f"Starting new scan cycle at {time.strftime('%Y-%m-%d %H:%M:%S')}")
             current_files = set()
             for audio_dir in AUDIO_DIRS:
+                if audio_dir is None:
+                    logger.error(f"Audio directory is None, check .env configuration")
+                    continue
                 if os.path.exists(audio_dir):
                     dir_files = set(os.path.join(audio_dir, f) for f in os.listdir(audio_dir) if f.endswith('.mp3'))
                     current_files.update(dir_files)
@@ -430,14 +438,12 @@ def watch_directory():
             logger.debug(f"Current files in directories: {current_file_names}")
             logger.debug(f"Known files before update: {known_files}")
             new_files = current_file_names - known_files
-
             logger.debug(f"Found {len(new_files)} new files: {new_files}")
             for mp3_name in new_files:
                 file_path = next((f for f in current_files if os.path.basename(f) == mp3_name), None)
                 if file_path:
                     logger.info(f"Detected new track: {mp3_name}")
                     add_track_to_db(mp3_name, file_path)
-
             logger.debug("Running sync_db_with_folder")
             sync_db_with_folder(current_file_names)
             conn = get_db()
