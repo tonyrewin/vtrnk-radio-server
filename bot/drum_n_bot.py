@@ -55,7 +55,7 @@ async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Проверяем, в чате или в личке
         is_group = update.message.chat.type in ['group', 'supergroup']
         button_type = {'url': 'https://t.me/drum_n_bot'} if is_group else {'web_app': {'url': 'https://vtrnk.online/telegram-mini-app.html'}}
-        keyboard = [[InlineKeyboardButton("Слушать радио", **button_type)]]
+        keyboard = [[InlineKeyboardButton("Слушать радио в Telegram", **button_type)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         # Проверяем существование файла
@@ -86,7 +86,7 @@ async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args and context.args[0] == 'launch_radio':
-        keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
+        keyboard = [[InlineKeyboardButton("Слушать радио в Telegram", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text("Запускаем VTRNK Radio!", reply_markup=reply_markup)
         logger.info("Launched Mini App from /start launch_radio")
