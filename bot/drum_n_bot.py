@@ -125,7 +125,7 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             file_path = f"{BASE_DIR}{cover_path}" if cover_path.startswith("/") else cover_path
                             logger.info(f"Local file path for podcast: {file_path}")
 
-                        keyboard = [[InlineKeyboardButton("Слушать радио", url="https://t.me/drum_n_bot")]]
+                        keyboard = [[InlineKeyboardButton("Слушать радио в Telegram", url="https://t.me/drum_n_bot")]]
                         reply_markup = InlineKeyboardMarkup(keyboard)
 
                         if os.path.exists(file_path) and os.path.isfile(file_path):
