@@ -84,6 +84,13 @@ async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in /radio: {str(e)}")
         await update.message.reply_text("Не удалось получить информацию о текущем треке. Попробуйте позже!")
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.args and context.args[0] == 'launch_radio':
+        keyboard = [[InlineKeyboardButton("Слушать радио", web_app={"url": "https://vtrnk.online/telegram-mini-app.html"})]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text("Запускаем VTRNK Radio!", reply_markup=reply_markup)
+        logger.info("Launched Mini App from /start launch_radio")
+
 async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
     last_track = None  # Последний трек, проверенный на подкаст
     announced_track = None  # Последний трек, о котором был пост
@@ -118,7 +125,7 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             file_path = f"{BASE_DIR}{cover_path}" if cover_path.startswith("/") else cover_path
                             logger.info(f"Local file path for podcast: {file_path}")
 
-                        keyboard = [[InlineKeyboardButton("Слушать радио", url="https://vtrnk.online/telegram-mini-app.html")]]
+                        keyboard = [[InlineKeyboardButton("Слушать радио", url="https://t.me/dmum_n_bot?start=launch_radio")]]
                         reply_markup = InlineKeyboardMarkup(keyboard)
 
                         if os.path.exists(file_path) and os.path.isfile(file_path):
@@ -161,6 +168,7 @@ def main():
     logger.info("Starting dmum_n_bot")
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("radio", radio))
+    application.add_handler(CommandHandler("start", start))
     application.job_queue.run_repeating(monitor_podcast, interval=60, first=0)
     application.run_polling()
 
