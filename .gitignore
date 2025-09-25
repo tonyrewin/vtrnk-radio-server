@@ -27,7 +27,15 @@ liquidsoap/radio_min.liq
 
 logs/
 # player/
-scripts/
+
+
+#scripts/
+scripts/clean_logs.sh
+scripts/cleanup.sh
+scripts/test_radio_player.py
+scripts/update_cover.py
+scripts/update_metadata.py
+
 venv/
 # web/
 web/schedule.html
