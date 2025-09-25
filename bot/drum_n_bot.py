@@ -10,7 +10,7 @@ import asyncio
 # Настройка логирования
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-log_path = '/home/beasty197/projects/vtrnk_radio/logs/dmum_n_bot.log'
+log_path = '/home/beasty197/projects/vtrnk_radio/logs/drum_n_bot.log'
 handler = logging.handlers.RotatingFileHandler(
     filename=log_path,
     maxBytes=5*1024*1024,  # 5MB
@@ -54,7 +54,7 @@ async def radio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Проверяем, в чате или в личке
         is_group = update.message.chat.type in ['group', 'supergroup']
-        button_type = {'url': 'https://vtrnk.online/telegram-mini-app.html'} if is_group else {'web_app': {'url': 'https://vtrnk.online/telegram-mini-app.html'}}
+        button_type = {'url': 'https://t.me/drum_n_bot'} if is_group else {'web_app': {'url': 'https://vtrnk.online/telegram-mini-app.html'}}
         keyboard = [[InlineKeyboardButton("Слушать радио", **button_type)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -125,7 +125,7 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
                             file_path = f"{BASE_DIR}{cover_path}" if cover_path.startswith("/") else cover_path
                             logger.info(f"Local file path for podcast: {file_path}")
 
-                        keyboard = [[InlineKeyboardButton("Слушать радио", url="https://t.me/dmum_n_bot?start=launch_radio")]]
+                        keyboard = [[InlineKeyboardButton("Слушать радио", url="https://t.me/drum_n_bot")]]
                         reply_markup = InlineKeyboardMarkup(keyboard)
 
                         if os.path.exists(file_path) and os.path.isfile(file_path):
@@ -165,7 +165,7 @@ async def monitor_podcast(context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(60)  # Проверка каждую минуту
 
 def main():
-    logger.info("Starting dmum_n_bot")
+    logger.info("Starting drum_n_bot")
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("radio", radio))
     application.add_handler(CommandHandler("start", start))
