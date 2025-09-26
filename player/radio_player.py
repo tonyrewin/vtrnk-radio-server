@@ -36,12 +36,14 @@ UPLOAD_TRACK_DIR = os.getenv('UPLOAD_TRACK_DIR', '/home/beasty197/projects/vtrnk
 IMAGES_DIR = os.getenv('IMAGES_DIR', '/home/beasty197/projects/vtrnk_radio/images')
 
 # Playback settings
-MAX_HISTORY_SIZE = 30
-PLAYBACK_MODE = "random"
+MAX_HISTORY_SIZE = 30  # Maximum tracks in playback history
+PLAYBACK_MODE = "random"  # Playback mode (currently fixed as random)
+HISTORY_EXCLUDE_SIZE = 30  # Number of recent tracks to exclude from next track selection
+NEXT_TRACK_CANDIDATES = 20  # Number of candidates to select random next track from
 
 # Delay settings
 SMART_SKIP_DELAY = 10  # Delay in seconds for smart_skip
-RADIO_SHOW_SKIP_DELAY = 10  # Delay in seconds for radio show skip
+RADIO_SHOW_SKIP_DELAY = 10  # Delay in seconds for radio show skip in schedule_checker and play_radio_show
 
 # Styles for normalization
 PREDEFINED_STYLES = [
@@ -70,8 +72,6 @@ STYLE_VARIANTS = {
     "Electronic": ["электронная музыка", "electronic", "electro"],
     "Dance": ["dance & dj", "dance & dj/general"]
 }
-
-# --- End Settings ---
 
 # Normalize style function
 def normalize_style(style):
@@ -213,7 +213,7 @@ def select_next_track():
         current_track_data = get_current_track()
         current_track = current_track_data.get('filename', '')
         history = load_playback_history()
-        exclude_tracks = history[-MAX_HISTORY_SIZE:]
+        exclude_tracks = history[-HISTORY_EXCLUDE_SIZE:]
         if current_track and current_track not in exclude_tracks:
             exclude_tracks.append(current_track)
         placeholders = ','.join(['?'] * len(exclude_tracks))
@@ -223,7 +223,7 @@ def select_next_track():
             FROM tracks
             WHERE {exclude_condition} AND status = 'available' AND track_info = 'track'
             ORDER BY playcount ASC, upload_date DESC
-            LIMIT 20
+            LIMIT {NEXT_TRACK_CANDIDATES}
         """, exclude_tracks)
         candidates = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -522,27 +522,19 @@ def update_show():
 @app.route('/upload_radio_show', methods=['POST'])
 def upload_radio_show():
     try:
-        print("Upload request received at /upload_radio_show")
         if 'radioFile' not in request.files:
-            print("No file in request")
             return "Нет файла", 400
         file = request.files['radioFile']
-        print(f"File received: {file.filename}")
         if file.filename == '':
-            print("File filename is empty")
             return "Файл не выбран", 400
         if not file.filename.lower().endswith('.mp3'):
-            print("File is not MP3")
             return "Допустим только формат MP3", 400
         file_path = os.path.join(UPLOAD_RADIO_DIR, file.filename)
-        print(f"Saving to: {file_path}")
         os.makedirs(UPLOAD_RADIO_DIR, exist_ok=True)
         file.save(file_path)
-        print(f"File saved successfully to {file_path}")
         logger.info(f"Uploaded radio show: {file.filename} to {file_path}")
         return "Радио-шоу успешно загружено", 200
     except Exception as e:
-        print(f"Error occurred: {str(e)}")
         logger.error(f"Error in upload_radio_show: {str(e)}")
         return f"Ошибка загрузки: {str(e)}", 500
 
@@ -586,7 +578,6 @@ def upload_track():
             return "Недопустимый формат файла", 400
         file_path = os.path.join(UPLOAD_TRACK_DIR, file.filename)
         file.save(file_path)
-        logger.info(f"Uploaded track: {file.filename} to {file_path}")
         return "Файл успешно загружен", 200
     except Exception as e:
         logger.error(f"Error in upload_track: {str(e)}")
@@ -988,7 +979,7 @@ def play_radio_show():
             time.sleep(RADIO_SHOW_SKIP_DELAY)
             logger.info(f"Sent to Liquidsoap: play_radio_show {track_path}, response: {response}")
             skip_response = skip_normal_queue()
-            logger.info(f"Skipped normal queue after {RADIO_SHOW_SKIP_DELAY}s delay, response: {skip_response}")
+            logger.info(f"Skipped normal queue after manual show play, response: {skip_response}")
             artist, title = get_track_metadata(track_path)
             save_last_played_track(track_path)
             add_track_to_queue()
