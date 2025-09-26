@@ -39,7 +39,7 @@ IMAGES_DIR = os.getenv('IMAGES_DIR', '/home/beasty197/projects/vtrnk_radio/image
 MAX_HISTORY_SIZE = 30  # Maximum tracks in playback history
 PLAYBACK_MODE = "random"  # Playback mode (currently fixed as random)
 HISTORY_EXCLUDE_SIZE = 30  # Number of recent tracks to exclude from next track selection
-NEXT_TRACK_CANDIDATES = 20  # Number of candidates to select random next track from
+NEXT_TRACK_CANDIDATES = 50  # Number of candidates to select random next track from
 
 # Delay settings
 SMART_SKIP_DELAY = 10  # Delay in seconds for smart_skip
