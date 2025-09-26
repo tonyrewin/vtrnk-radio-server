@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VTRNK Internet Radio в Telegram</title>
     <link rel="icon" href="/images/icon.png">
-    <!-- Telegram Web App JS -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Socket.io -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <!-- ColorThief -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.4.0/color-thief.umd.js"></script>
     <style>
         body {
@@ -58,17 +55,17 @@
         }
         #now-playing {
             font-size: 16px;
-            color: #ffffff !important; /* Изменили на белый */
+            color: #ffffff;
         }
         #track-artist {
             font-size: 18px;
             margin: 5px 0 0 0;
-            color: #ffffff !important; /* Изменили на белый */
+            color: #ffffff;
         }
         #track-title {
             font-size: 16px;
             margin: 2px 0 0 0;
-            color: #ffffff !important; /* Изменили на белый */
+            color: #ffffff;
         }
         .poster-container {
             width: 240px;
@@ -133,7 +130,7 @@
             <p id="track-title">Ожидание трека...</p>
         </div>
         <div class="poster-container">
-            <img id="track-poster" src="/images/placeholder2.png" alt="Постер" class="poster">
+            <img id="track-poster" src="/images/placeholder.png" alt="Постер" class="poster">
         </div>
         <button class="play-stop-btn" id="play-stop">
             <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -161,7 +158,7 @@
         let lastTrackData = {
             artist: "VTRNK",
             title: "Radio Show",
-            coverPath: "/images/placeholder2.png"
+            coverPath: "/images/placeholder.png"
         };
 
         const canvas = document.getElementById('equalizer');
@@ -198,27 +195,46 @@
         }
         drawEqualizer();
 
-        player.addEventListener('error', (e) => console.error("Ошибка воспроизведения:", e));
+        player.addEventListener('error', (e) => {
+            console.error("Ошибка воспроизведения:", e);
+            isPlaying = false;
+            playIcon.style.display = 'block';
+            stopIcon.style.display = 'none';
+            playStopBtn.disabled = false;
+        });
         player.addEventListener('play', () => {
+            console.log("Воспроизведение начато");
             playIcon.style.display = 'none';
             stopIcon.style.display = 'block';
             isPlaying = true;
+            playStopBtn.disabled = false;
         });
         player.addEventListener('pause', () => {
+            console.log("Воспроизведение приостановлено");
             playIcon.style.display = 'block';
             stopIcon.style.display = 'none';
             isPlaying = false;
+            playStopBtn.disabled = false;
         });
 
         function togglePlay() {
-            if (!player.src) {
-                player.src = "/radio_stream";
-                player.load();
-            }
+            playStopBtn.disabled = true; // Отключаем кнопку во время загрузки
             if (isPlaying) {
                 player.pause();
+                player.src = ''; // Очищаем src для сброса буфера
             } else {
-                player.play().catch(err => console.error("Ошибка:", err));
+                const timestamp = Date.now();
+                player.src = `/radio_stream?t=${timestamp}`;
+                player.load();
+                player.play().then(() => {
+                    console.log("Стрим успешно запущен");
+                }).catch(err => {
+                    console.error("Ошибка воспроизведения:", err);
+                    isPlaying = false;
+                    playIcon.style.display = 'block';
+                    stopIcon.style.display = 'none';
+                    playStopBtn.disabled = false;
+                });
             }
         }
 
@@ -239,7 +255,7 @@
             console.log("Updating UI with:", { artist, title, coverPath });
             trackArtist.textContent = artist || "VTRNK";
             trackTitle.textContent = title || "Radio Show";
-            trackPoster.src = coverPath || "/images/placeholder2.png";
+            trackPoster.src = coverPath || "/images/placeholder.png";
             updateBackgroundColor(trackPoster.src);
 
             if ('mediaSession' in navigator) {
@@ -272,7 +288,7 @@
                         })
                         .then(coverData => {
                             console.log("Fetched cover data:", coverData);
-                            lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                            lastTrackData.coverPath = coverData.cover_path || "/images/placeholder.png";
                             updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
                         })
                         .catch(err => {
@@ -304,7 +320,7 @@
                 .then(response => response.json())
                 .then(coverData => {
                     console.log("Fetched cover data (WebSocket):", coverData);
-                    lastTrackData.coverPath = coverData.cover_path || "/images/placeholder2.png";
+                    lastTrackData.coverPath = coverData.cover_path || "/images/placeholder.png";
                     updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
                 })
                 .catch(err => {
