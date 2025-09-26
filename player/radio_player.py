@@ -16,21 +16,86 @@ import pytz
 from queue import Queue, Empty
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-load_dotenv()  # Загружает .env
+load_dotenv()
+
+# --- Settings ---
+# Telnet settings for Liquidsoap
+TELNET_HOST = os.getenv('TELNET_HOST', '127.0.0.1')
+TELNET_PORT = int(os.getenv('TELNET_PORT', 1234))
+
+# Directories and files
+TRACKS_DIR = os.getenv('TRACKS_DIR', '/home/beasty197/projects/vtrnk_radio/audio/mp3')
+CURRENT_TRACK_FILE = os.getenv('CURRENT_TRACK_FILE', '/home/beasty197/projects/vtrnk_radio/data/radio_current_track.txt')
+LAST_PLAYED_TRACK_FILE = os.getenv('LAST_PLAYED_TRACK_FILE', '/home/beasty197/projects/vtrnk_radio/data/last_played_track.txt')
+PLAYBACK_HISTORY_FILE = os.getenv('PLAYBACK_HISTORY_FILE', '/home/beasty197/projects/vtrnk_radio/data/playback_history.txt')
+DB_PATH = os.getenv('DB_PATH', '/home/beasty197/projects/vtrnk_radio/data/radio.db')
+LOGS_DIR = os.getenv('LOGS_DIR', '/home/beasty197/projects/vtrnk_radio/logs')
+LOG_FILE = os.getenv('LOG_FILE', 'radio_player.log')
+UPLOAD_RADIO_DIR = os.getenv('UPLOAD_RADIO_DIR', '/home/beasty197/projects/vtrnk_radio/audio/radio_show')
+UPLOAD_TRACK_DIR = os.getenv('UPLOAD_TRACK_DIR', '/home/beasty197/projects/vtrnk_radio/audio/upload_dir')
+IMAGES_DIR = os.getenv('IMAGES_DIR', '/home/beasty197/projects/vtrnk_radio/images')
+
+# Playback settings
+MAX_HISTORY_SIZE = 30
+PLAYBACK_MODE = "random"
+
+# Delay settings
+SMART_SKIP_DELAY = 10  # Delay in seconds for smart_skip
+RADIO_SHOW_SKIP_DELAY = 10  # Delay in seconds for radio show skip
+
+# Styles for normalization
+PREDEFINED_STYLES = [
+    "Jungle", "Techstep", "Drum & Bass", "Breakbeat", "Liquid Funk", "Neurofunk",
+    "Hardstep", "Darkstep", "Ragga Jungle", "Jump Up", "Minimal DnB", "Ambient DnB",
+    "Electronic", "Dance", "Blues", "Reggae"
+]
+STYLE_VARIANTS = {
+    "Drum & Bass": [
+        "drum and bass", "dnb", "drum n bass", "d&b", "drumnbass", "drum&bass",
+        "drum 'n' bass", "d'n'b", "drumn'bass"
+    ],
+    "Jungle": [
+        "ragga jungle", "junglist", "jungle dnb", "jungle drum & bass",
+        "jungle drum and bass", "oldskool jungle"
+    ],
+    "Techstep": ["tech step", "tech-step"],
+    "Liquid Funk": ["liquid funk", "liquid dnb", "liquid"],
+    "Neurofunk": ["neuro funk", "neuro"],
+    "Breakbeat": ["break beat", "breaks"],
+    "Hardstep": ["hard step"],
+    "Darkstep": ["dark step", "dark dnb"],
+    "Jump Up": ["jumpup", "jump-up"],
+    "Minimal DnB": ["minimal drum & bass", "minimal dnb"],
+    "Ambient DnB": ["ambient drum & bass", "ambient dnb"],
+    "Electronic": ["электронная музыка", "electronic", "electro"],
+    "Dance": ["dance & dj", "dance & dj/general"]
+}
+
+# --- End Settings ---
+
+# Normalize style function
+def normalize_style(style):
+    if not style:
+        return "Unknown"
+    style = style.lower().strip()
+    if ';' in style:
+        style = style.split(';')[0].strip()  # Take first genre
+    for canonical, variants in STYLE_VARIANTS.items():
+        if style == canonical.lower() or style in [v.lower() for v in variants]:
+            return canonical
+    return "Unknown" if style not in [s.lower() for s in PREDEFINED_STYLES] else style.title()
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Очередь для хранения обновлений
+# Queue for updates
 updates = Queue()
 
-# Настройка логирования (путь из .env)
+# Logging setup
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-log_dir = os.getenv('LOGS_DIR')
-log_file = os.getenv('LOG_FILE')
-log_path = os.path.join(log_dir, log_file) if log_dir and log_file else '/home/beasty197/projects/vtrnk_radio/logs/radio_player.log'  # Дефолт на случай отсутствия .env
+log_path = os.path.join(LOGS_DIR, LOG_FILE)
 handler = logging.handlers.RotatingFileHandler(
     filename=log_path,
     maxBytes=5*1024*1024,
@@ -39,48 +104,23 @@ handler = logging.handlers.RotatingFileHandler(
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 
-# Фильтр для исключения DEBUG-логов
 class NoDebugFilter(logging.Filter):
     def filter(self, record):
         return record.levelno > logging.DEBUG
 handler.addFilter(NoDebugFilter())
 logger.addHandler(handler)
 
-# Параметры Telnet для Liquidsoap (из .env)
-TELNET_HOST = os.getenv('TELNET_HOST', '127.0.0.1')
-TELNET_PORT = int(os.getenv('TELNET_PORT', 1234))
-
-# Директория с треками (из .env)
-TRACKS_DIR = os.getenv('TRACKS_DIR')
-
-# Пути к файлам (из .env)
-CURRENT_TRACK_FILE = os.getenv('CURRENT_TRACK_FILE')
-LAST_PLAYED_TRACK_FILE = os.getenv('LAST_PLAYED_TRACK_FILE')
-PLAYBACK_HISTORY_FILE = os.getenv('PLAYBACK_HISTORY_FILE')
-
-# Максимальное количество треков в истории
-MAX_HISTORY_SIZE = 30
-
-# Режим воспроизведения
-playback_mode = "random"
-
-# Переменная для хранения next_track
+# Playback variables
 next_track = None
-
-# Задержка между командами
-COMMAND_DELAY = 2
-
-# Блокировка для предотвращения дублирования
 last_played_track_lock = threading.Lock()
 
 def get_db():
-    db_path = os.getenv('DB_PATH')
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         return conn
     except Exception as e:
-        logger.error(f"Error connecting to database at {db_path}: {str(e)}")
+        logger.error(f"Error connecting to database at {DB_PATH}: {str(e)}")
         raise
 
 def liquidsoap_command(command):
@@ -173,7 +213,7 @@ def select_next_track():
         current_track_data = get_current_track()
         current_track = current_track_data.get('filename', '')
         history = load_playback_history()
-        exclude_tracks = history[-30:]
+        exclude_tracks = history[-MAX_HISTORY_SIZE:]
         if current_track and current_track not in exclude_tracks:
             exclude_tracks.append(current_track)
         placeholders = ','.join(['?'] * len(exclude_tracks))
@@ -242,8 +282,8 @@ def smart_skip():
     try:
         logger.info("Starting smart skip process")
         add_track_to_queue()
-        logger.info(f"Added next track, waiting {COMMAND_DELAY} seconds")
-        time.sleep(COMMAND_DELAY)
+        logger.info(f"Added next track, waiting {SMART_SKIP_DELAY} seconds")
+        time.sleep(SMART_SKIP_DELAY)
         skip_track()
         logger.info("Smart skip completed successfully")
         return {"success": True, "message": "Smart skip executed successfully"}
@@ -308,11 +348,7 @@ def handle_track():
             artist_from_request = data.get('artist', 'Unknown Artist')
             title_from_request = data.get('title', 'Unknown Title')
             filename = data.get('filename', 'Unknown File')
-            # Получаем artist и title из базы по filename
-            artist_from_db, title_from_db = get_track_metadata(filename)
-            # Используем данные из базы, если они есть, иначе из запроса
-            artist = artist_from_db or artist_from_request
-            title = title_from_db or title_from_request
+            artist, title = get_track_metadata(filename)
             normal_queue_length = data.get('normal_queue_length', 0)
             special_queue_length = data.get('special_queue_length', 0)
             timestamp = data.get('timestamp', 'Unknown Timestamp')
@@ -342,7 +378,6 @@ def handle_track():
                 save_last_played_track(filename)
                 add_track_to_queue()
             socketio.emit('track_update', current_track_json)
-            # Добавленный блок для сброса queued при старте special трека
             if data.get('queue') == 'special':
                 try:
                     conn = get_db()
@@ -429,7 +464,6 @@ def update_show():
             return jsonify({'success': False, 'error': 'Missing track_path'}), 400
         conn = get_db()
         cursor = conn.cursor()
-        # Проверяем, существует ли запись
         cursor.execute("SELECT 1 FROM tracks WHERE path = ?", (track_path,))
         if not cursor.fetchone():
             logger.warning(f"No show found with path {track_path}")
@@ -444,18 +478,17 @@ def update_show():
             update_query += "title = ?, "
             update_params.append(new_title)
         if new_style:
+            normalized_style = normalize_style(new_style)
             update_query += "style = ?, "
-            update_params.append(new_style)
+            update_params.append(normalized_style)
         if 'coverFile' in request.files:
             cover_file = request.files['coverFile']
             if cover_file.filename != '':
                 if not cover_file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
                     logger.warning("Invalid cover file format")
                     return jsonify({'success': False, 'error': 'Invalid cover file format. Only JPG, JPEG, PNG allowed.'}), 400
-                cover_dir = os.path.join(os.getenv('IMAGES_DIR', '/home/beasty197/projects/vtrnk_radio/images/'), 'show_covers/')
-                if not os.path.exists(cover_dir):
-                    os.makedirs(cover_dir)
-                    logger.info(f"Created directory {cover_dir}")
+                cover_dir = os.path.join(IMAGES_DIR, 'show_covers')
+                os.makedirs(cover_dir, exist_ok=True)
                 cover_path = os.path.join(cover_dir, cover_file.filename)
                 cover_file.save(cover_path)
                 logger.info(f"Saved cover file to {cover_path}")
@@ -501,10 +534,9 @@ def upload_radio_show():
         if not file.filename.lower().endswith('.mp3'):
             print("File is not MP3")
             return "Допустим только формат MP3", 400
-        file_path = os.path.join(os.getenv('UPLOAD_RADIO_DIR'), file.filename)
+        file_path = os.path.join(UPLOAD_RADIO_DIR, file.filename)
         print(f"Saving to: {file_path}")
-        if not os.path.exists(os.getenv('UPLOAD_RADIO_DIR')):
-            os.makedirs(os.getenv('UPLOAD_RADIO_DIR'))
+        os.makedirs(UPLOAD_RADIO_DIR, exist_ok=True)
         file.save(file_path)
         print(f"File saved successfully to {file_path}")
         logger.info(f"Uploaded radio show: {file.filename} to {file_path}")
@@ -522,7 +554,6 @@ def delete_radio_show():
         if not track_path:
             logger.warning("Missing track_path in delete_radio_show request")
             return jsonify({'success': False, 'error': 'Missing track_path'}), 400
-        # Удаляем запись из базы данных
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM tracks WHERE path = ? AND track_info = 'radio_show'", (track_path,))
@@ -532,7 +563,6 @@ def delete_radio_show():
         if affected_rows == 0:
             logger.warning(f"No radio show found with path {track_path}")
             return jsonify({'success': False, 'error': f"No radio show found with path {track_path}"}), 404
-        # Удаляем файл с диска
         if os.path.exists(track_path):
             os.remove(track_path)
             logger.info(f"Deleted radio show file: {track_path}")
@@ -554,8 +584,9 @@ def upload_track():
         valid_extensions = {'.mp3', '.wav', '.flac'}
         if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
             return "Недопустимый формат файла", 400
-        file_path = os.path.join(os.getenv('UPLOAD_TRACK_DIR'), file.filename)
+        file_path = os.path.join(UPLOAD_TRACK_DIR, file.filename)
         file.save(file_path)
+        logger.info(f"Uploaded track: {file.filename} to {file_path}")
         return "Файл успешно загружен", 200
     except Exception as e:
         logger.error(f"Error in upload_track: {str(e)}")
@@ -616,7 +647,7 @@ def schedule_checker():
         try:
             msk_tz = pytz.timezone('Europe/Moscow')
             current_time = datetime.now(msk_tz)
-            if current_time.second % 10 != 0:  # Проверяем каждые 10 сек (00, 10, 20, 30, 40, 50)
+            if current_time.second % 10 != 0:
                 time.sleep(1)
                 continue
             current_time_rounded = current_time.replace(second=0, microsecond=0)
@@ -626,7 +657,6 @@ def schedule_checker():
             schedule = [dict(row) for row in cursor.fetchall()]
             for entry in schedule:
                 try:
-                    # Парсинг start_time
                     try:
                         scheduled_time = datetime.strptime(entry['start_time'], '%Y-%m-%dT%H:%M').replace(tzinfo=msk_tz)
                     except ValueError:
@@ -637,17 +667,13 @@ def schedule_checker():
                     logger.info(f"Schedule entry: id={entry['id']}, track_path={entry['track_path']}, start_time={scheduled_time_str}, current_time={current_time_str}, window_end={window_end_str}")
                     if current_time_str >= scheduled_time_str and current_time_str <= window_end_str:
                         success = False
-                        for attempt in range(1, 4):  # 3 attempts
+                        for attempt in range(1, 4):
                             logger.info(f"Attempt {attempt}/3 to add show {entry['track_path']} to special_queue")
-                            # Send play_radio_show without checks
                             response = liquidsoap_command(f"play_radio_show {entry['track_path']}")
-                            # Skip normal queue
-                            time.sleep(5)  # Увеличено до 5s для switch/crossfade
+                            time.sleep(RADIO_SHOW_SKIP_DELAY)
                             skip_response = skip_normal_queue()
-                            logger.info(f"Skipped normal queue after 5s delay, response: {skip_response}")
-                            # Sleep 55s
+                            logger.info(f"Skipped normal queue after {RADIO_SHOW_SKIP_DELAY}s delay, response: {skip_response}")
                             time.sleep(55)
-                            # Check
                             current_track_data = get_current_track()
                             current_filename = current_track_data.get('filename', '')
                             special_contents = get_special_queue_contents()
@@ -672,7 +698,7 @@ def schedule_checker():
                 except ValueError as e:
                     logger.error(f"Invalid start_time for entry {entry['id']}: {str(e)}")
                     continue
-            time.sleep(1)  # Пауза
+            time.sleep(1)
         except Exception as e:
             logger.error(f"Error in schedule_checker: {str(e)}")
             try:
@@ -840,16 +866,17 @@ def update_style():
         if not track_name or not new_style:
             logger.warning("Missing track_name or style in update_style request")
             return jsonify({'error': 'Missing track_name or style'}), 400
+        normalized_style = normalize_style(new_style)
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("UPDATE tracks SET style = ? WHERE name = ?", (new_style, track_name))
+        cursor.execute("UPDATE tracks SET style = ? WHERE name = ?", (normalized_style, track_name))
         affected_rows = cursor.rowcount
         conn.commit()
         conn.close()
         if affected_rows == 0:
             logger.warning(f"No track found with name {track_name}")
             return jsonify({'error': f"No track found with name {track_name}"}), 404
-        logger.info(f"Updated style for track {track_name} to {new_style}")
+        logger.info(f"Updated style for track {track_name} to {normalized_style}")
         return jsonify({'success': True})
     except Exception as e:
         logger.error(f"Error in update_style: {str(e)}")
@@ -913,12 +940,11 @@ def schedule_play():
         scheduled_time = data.get('scheduled_time')
         if not track_path or not scheduled_time:
             return jsonify({'error': 'Missing track_path or scheduled_time'}), 400
-        # Нормализация scheduled_time до формата YYYY-MM-DDTHH:MM
         try:
             parsed_time = datetime.strptime(scheduled_time, '%Y-%m-%dT%H:%M:%S')
             scheduled_time = parsed_time.strftime('%Y-%m-%dT%H:%M')
         except ValueError:
-            pass  # Если формат уже правильный, оставляем как есть
+            pass
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO schedule (track_path, start_time, enabled) VALUES (?, ?, 1)",
@@ -959,10 +985,10 @@ def play_radio_show():
                 logger.warning(f"Attempted to play the same track {track_path} twice consecutively")
                 return jsonify({'error': 'Cannot play the same track twice consecutively'}), 400
             response = liquidsoap_command(f"play_radio_show {track_path}")
-            time.sleep(2)  # Задержка для обработки Liquidsoap
+            time.sleep(RADIO_SHOW_SKIP_DELAY)
             logger.info(f"Sent to Liquidsoap: play_radio_show {track_path}, response: {response}")
             skip_response = skip_normal_queue()
-            logger.info(f"Skipped normal queue after manual show play, response: {skip_response}")
+            logger.info(f"Skipped normal queue after {RADIO_SHOW_SKIP_DELAY}s delay, response: {skip_response}")
             artist, title = get_track_metadata(track_path)
             save_last_played_track(track_path)
             add_track_to_queue()
