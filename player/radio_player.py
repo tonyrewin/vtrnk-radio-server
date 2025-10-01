@@ -360,6 +360,7 @@ def handle_track():
                 'filename': filename,
                 'artist': artist,
                 'title': title,
+                'album': 'Radio VTRNK Stream',
                 'normal_queue_length': normal_queue_length,
                 'special_queue_length': special_queue_length,
                 'timestamp': timestamp,
@@ -401,14 +402,16 @@ def handle_track():
             return jsonify([
                 ["filename", data.get("filename", "Unknown File")],
                 ["artist", data.get("artist", "Unknown Artist")],
-                ["title", data.get("title", "Unknown Title")]
+                ["title", data.get("title", "Unknown Title")],
+                ["album", data.get("album", "Radio VTRNK Stream")]
             ])
         except Exception as e:
             logger.error(f"Error in handle_track (GET): {str(e)}")
             return jsonify([
                 ["filename", "Unknown File"],
                 ["artist", "Unknown Artist"],
-                ["title", "Unknown Title"]
+                ["title", "Unknown Title"],
+                ["album", "Radio VTRNK Stream"]
             ]), 500
 
 @app.route('/track_added_special', methods=['POST'])
