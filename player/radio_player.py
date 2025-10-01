@@ -36,9 +36,9 @@ UPLOAD_TRACK_DIR = os.getenv('UPLOAD_TRACK_DIR', '/home/beasty197/projects/vtrnk
 IMAGES_DIR = os.getenv('IMAGES_DIR', '/home/beasty197/projects/vtrnk_radio/images')
 
 # Playback settings
-MAX_HISTORY_SIZE = 30  # Maximum tracks in playback history
+MAX_HISTORY_SIZE = 60  # Maximum tracks in playback history
 PLAYBACK_MODE = "random"  # Playback mode (currently fixed as random)
-HISTORY_EXCLUDE_SIZE = 30  # Number of recent tracks to exclude from next track selection
+HISTORY_EXCLUDE_SIZE = 60  # Number of recent tracks to exclude from next track selection
 NEXT_TRACK_CANDIDATES = 50  # Number of candidates to select random next track from
 
 # Delay settings
