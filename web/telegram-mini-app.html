@@ -251,8 +251,8 @@
             };
         }
 
-        function updateTrackUI(artist, title, coverPath) {
-            console.log("Updating UI with:", { artist, title, coverPath });
+        function updateTrackUI(artist, title, coverPath, album) {
+            console.log("Updating UI with:", { artist, title, coverPath, album });
             trackArtist.textContent = artist || "VTRNK";
             trackTitle.textContent = title || "Radio Show";
             trackPoster.src = coverPath || "/images/placeholder.png";
@@ -262,6 +262,7 @@
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: title || "Radio Show",
                     artist: artist || "VTRNK",
+                    album: album || "Radio VTRNK Stream",
                     artwork: [{ src: trackPoster.src, sizes: '192x192', type: 'image/png' }]
                 });
             }
@@ -280,6 +281,7 @@
                     data.forEach(item => dataDict[item[0]] = item[1]);
                     lastTrackData.artist = dataDict.artist || "VTRNK";
                     lastTrackData.title = dataDict.title || "Radio Show";
+                    lastTrackData.album = dataDict.album || "Radio VTRNK Stream";
 
                     fetch('/get_cover_path')
                         .then(response => {
@@ -289,16 +291,16 @@
                         .then(coverData => {
                             console.log("Fetched cover data:", coverData);
                             lastTrackData.coverPath = coverData.cover_path || "/images/placeholder.png";
-                            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath, lastTrackData.album);
                         })
                         .catch(err => {
                             console.error("Ошибка /get_cover_path:", err);
-                            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath, lastTrackData.album);
                         });
                 })
                 .catch(err => {
                     console.error("Ошибка /track:", err);
-                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath, lastTrackData.album);
                 });
         }
 
@@ -315,23 +317,24 @@
             console.log("WebSocket track_update:", data);
             lastTrackData.artist = data.artist || "VTRNK";
             lastTrackData.title = data.title || "Radio Show";
+            lastTrackData.album = data.album || "Radio VTRNK Stream";
 
             fetch('/get_cover_path')
                 .then(response => response.json())
                 .then(coverData => {
                     console.log("Fetched cover data (WebSocket):", coverData);
                     lastTrackData.coverPath = coverData.cover_path || "/images/placeholder.png";
-                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath, lastTrackData.album);
                 })
                 .catch(err => {
                     console.error("Ошибка /get_cover_path (WebSocket):", err);
-                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+                    updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath, lastTrackData.album);
                 });
         });
 
         socket.on('disconnect', () => {
             console.log("WebSocket disconnected");
-            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath);
+            updateTrackUI(lastTrackData.artist, lastTrackData.title, lastTrackData.coverPath, lastTrackData.album);
         });
 
         if ('mediaSession' in navigator) {
