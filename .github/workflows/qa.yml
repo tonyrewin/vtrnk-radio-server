@@ -1,0 +1,25 @@
+name: QA Tests
+on:
+  push:
+    branches: [ qa-setup ]
+  pull_request:
+    branches: [ qa-setup ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest python-dotenv
+      - name: Run tests
+        env:
+          SOURCE_PASSWORD: dummy
+          ADMIN_PASSWORD: dummy
+          TRACKS_DIR: /tmp/dummy
+        run: pytest -q
