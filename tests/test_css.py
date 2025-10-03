@@ -26,9 +26,8 @@ def test_play_stop_button():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=390,844")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 Safari/604.1")
-    # Specify Chromium binary for CI
     if os.environ.get('CI'):
-        chrome_options.binary_location = '/usr/bin/chromium'
+        chrome_options.binary_location = '/snap/bin/chromium'
     
     driver = webdriver.Chrome(options=chrome_options)
     
@@ -58,7 +57,7 @@ def test_hamburger_button():
     chrome_options.add_argument("--window-size=390,844")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 Safari/604.1")
     if os.environ.get('CI'):
-        chrome_options.binary_location = '/usr/bin/chromium'
+        chrome_options.binary_location = '/snap/bin/chromium'
     
     driver = webdriver.Chrome(options=chrome_options)
     
