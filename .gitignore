@@ -42,3 +42,4 @@ venv/
 web/schedule.html
 web/tracks.html
 # web/stream.html
+__pycache__/
