@@ -19,7 +19,32 @@ jobs:
           pip install pytest python-dotenv
       - name: Run tests
         env:
+          CI: true  # Mark CI environment
           SOURCE_PASSWORD: dummy
           ADMIN_PASSWORD: dummy
           TRACKS_DIR: /tmp/dummy
+          DB_PATH: /tmp/radio.db
+          TELNET_HOST: 127.0.0.1
+          TELNET_PORT: 1234
+          AUDIO_DIR: /tmp/dummy
+          AUDIO_RADIO_SHOW_DIR: /tmp/dummy
+          AUDIO_JINGLES_DIR: /tmp/dummy
+          UPLOAD_DIR: /tmp/dummy
+          TEMP_DIR: /tmp/dummy
+          TRACKS_DATA_DIR: /tmp/dummy
+          LOGS_DIR: /tmp/dummy
+          IMAGES_DIR: /tmp/dummy
+          COVER_DIR: /tmp/dummy
+          SHOW_COVER_DIR: /tmp/dummy
+          JINGLE_COVER_DIR: /tmp/dummy
+          ICECAST_LOG_DIR: /tmp/dummy
+          ICECAST_V2_LOG_DIR: /tmp/dummy
+          NGINX_WEB_ROOT: /tmp/dummy
+          NGINX_IMAGES_DIR: /tmp/dummy
+          NGINX_CSS_DIR: /tmp/dummy
+          NGINX_HLS_DIR: /tmp/dummy
+          CURRENT_TRACK_FILE: /tmp/dummy.txt
+          LAST_PLAYED_TRACK_FILE: /tmp/dummy.txt
+          PLAYBACK_HISTORY_FILE: /tmp/dummy.txt
+          PLACEHOLDER_POSTER: /tmp/dummy.png
         run: pytest -q
