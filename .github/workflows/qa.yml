@@ -51,4 +51,4 @@ jobs:
           LAST_PLAYED_TRACK_FILE: /tmp/dummy.txt
           PLAYBACK_HISTORY_FILE: /tmp/dummy.txt
           PLACEHOLDER_POSTER: /tmp/dummy.png
-        run: pytest -q
+        run: pytest -q --maxprocesses=1
