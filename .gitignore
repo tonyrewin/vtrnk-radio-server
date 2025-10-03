@@ -16,9 +16,15 @@ config/icecast/icecast_v2.xml
 # Full Nginx config
 config/nginx/vtrnk_radio.conf  
 config/systemd
+
 data/
+data/temp/
+*.tmp
+
 hls/
+
 images/
+
 # liquidsoap/
 liquidsoap/radio.liq
 liquidsoap/radio_v2.liq
@@ -26,6 +32,8 @@ liquidsoap/radio_v2.liq.bak
 liquidsoap/radio_min.liq
 
 logs/
+*.log
+
 # player/
 
 
@@ -43,3 +51,15 @@ web/schedule.html
 web/tracks.html
 # web/stream.html
 __pycache__/
+*.pyc
+.pytest_cache/
+
+# Локальные конфигурации
+.vscode
+*.swp
+
+# Системные файлы
+#       Для macOS
+.DS_Store
+#       Для Windows
+Thumbs.db
