@@ -100,5 +100,23 @@ A server-side implementation of an internet radio streaming service built with L
 - Logs are stored in `/home/beasty197/projects/vtrnk_radio/logs/` (e.g., `drum_n_bot.log`, `track_watcher.log`, `upload_manager.log`).
 - This project demonstrates proficiency in Linux server management, Liquidsoap scripting, Python automation, and secure configuration practices.
 
+## QA Process
+
+- **Test Plan**: [qa/test-plan.markdown](qa/test-plan.markdown)
+- **Automated Tests**:
+  - `tests/test_config.py`: Validates `.env` configuration (e.g., `SOURCE_PASSWORD`, `TRACKS_DIR`).
+  - `tests/test_database.py`: Checks `radio.db` and `channels.db` connectivity and schema.
+  - `tests/test_env_paths.py`: Verifies paths and files from `.env`.
+  - `tests/test_stream.py`: Ensures Liquidsoap starts correctly.
+  - `tests/test_telnet.py`: Tests Telnet server connectivity (127.0.0.1:1234).
+  - `tests/test_css.py`: Temporarily disabled due to ChromeDriver compatibility issues (Issue #7).
+  - `tests/test_nginx.py`: Confirms Nginx availability (HTTP 200).
+  - `tests/test_performance.py`: Verifies page load time (<5s).
+  - `tests/test_api.py`: Tests /track API endpoint (HTTP 200, valid JSON).
+  - `tests/test_ssl.py`: Verifies HTTPS and SSL certificate validity (Issue #11).
+- **Test Plan Coverage**: All components (.env, Liquidsoap, databases, Telnet, Nginx, performance, API, SSL) tested, except Web UI buttons (pending ChromeDriver fix, Issue #7).
+- **CI/CD**: GitHub Actions runs `pytest` (excluding test_css.py) on push to `qa-setup` branch (https://github.com/Beasty177/vtrnk-radio-server/actions).
+- **Issues**: Bug tracking and test cases (#2-#11) at https://github.com/Beasty177/vtrnk-radio-server/issues.
+
 ## License
 MIT
