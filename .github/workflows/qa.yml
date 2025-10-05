@@ -21,6 +21,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
+      - name: Create dummy directories for CI
+        run: |
+          mkdir -p /tmp/dummy_mp3
+          touch /tmp/dummy_mp3/test.mp3
+          mkdir -p /tmp/radio.db  # Dummy for DB_PATH
       - name: Run tests
         env:
           CI: true
@@ -30,7 +35,7 @@ jobs:
           DB_PATH: /tmp/radio.db
           TELNET_HOST: 127.0.0.1
           TELNET_PORT: 1234
-          AUDIO_DIR: /tmp/dummy
+          AUDIO_DIR: /tmp/dummy_mp3
           AUDIO_RADIO_SHOW_DIR: /tmp/dummy
           AUDIO_JINGLES_DIR: /tmp/dummy
           UPLOAD_DIR: /tmp/dummy
@@ -51,4 +56,4 @@ jobs:
           LAST_PLAYED_TRACK_FILE: /tmp/dummy.txt
           PLAYBACK_HISTORY_FILE: /tmp/dummy.txt
           PLACEHOLDER_POSTER: /tmp/dummy.png
-        run: pytest -q tests/ --ignore=tests/test_css.py
+        run: pytest -q tests/
